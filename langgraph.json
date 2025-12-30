@@ -1,0 +1,23 @@
+{
+    "dependencies": [
+        "."
+    ],
+    "graphs": {
+        "agent": "./src/agent.ts:agent"
+    },
+    "env": {
+        "OPENAI_API_KEY": "AIzaSyDoP_48nQK7qkClt8vZk8g9sboCAEuN-jg",
+        "LANGCHAIN_TRACING_V2": "true",
+        "LANGSMITH_PROJECT": "ebot"
+    },
+    "python_version": "3.11",
+    "dockerfile_lines": [
+        "FROM node:18-alpine",
+        "WORKDIR /app",
+        "COPY package*.json ./",
+        "RUN npm ci --only=production",
+        "COPY . .",
+        "RUN npm run build",
+        "EXPOSE 8080"
+    ]
+}
