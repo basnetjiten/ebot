@@ -4,7 +4,7 @@ import { SearchTool } from './searchTool';
 import { ReflectionEntry, MoodAnalysis, Todo } from '../types';
 
 // Node for processing reflection entries
-export const reflectionProcessor = (state: AgentStateType): Partial<AgentStateType> => {
+export const reflectionProcessor = async (state: AgentStateType): Promise<Partial<AgentStateType>> => {
   console.log('Processing reflection entry for user:', state.userId);
 
   if (!state.currentReflection?.content) {
@@ -18,10 +18,17 @@ export const reflectionProcessor = (state: AgentStateType): Partial<AgentStateTy
 
   try {
     // Extract todos from the reflection
-    const todos = ReflectionAnalyzer.extractTodos(content);
-    const todosWithUserId = todos.map(todo => ({
-      ...todo,
+    const todosData = await ReflectionAnalyzer.extractTodos(content);
+    const todos = JSON.parse(todosData) as string[];
+
+    const todosWithUserId: Todo[] = todos.map(todo => ({
+      id: crypto.randomUUID(),
       userId: state.userId,
+      title: todo,
+      completed: false,
+      createdAt: new Date(),
+      description: '',
+      priority: 'medium',
       sourceReflectionId: state.currentReflection?.id
     }));
 

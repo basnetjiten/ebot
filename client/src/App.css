@@ -33,6 +33,8 @@ body {
   min-height: 100vh;
   background-color: var(--bg);
   display: flex;
+  position: relative;
+  overflow: hidden;
 }
 
 /* Chat Container */
@@ -42,11 +44,69 @@ body {
   max-width: 100%;
   margin: 0;
   height: 100vh;
-  margin: 0 auto;
-  height: 100vh;
   background: var(--bg-secondary);
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.chat-interface {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.chat-container.with-sidebar {
+  width: 60%;
+  height: 100vh;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Sidebar */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.empty-state h2 {
+  color: var(--text);
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.empty-state p {
+  margin: 0.5rem 0;
+  line-height: 1.5;
+}
+
+.reflection-sidebar {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 40%;
+  height: 100%;
+  background: white;
+  overflow-y: auto;
+  padding: 1.5rem;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.05);
+  z-index: 2;
+  display: block;
+  transform: translateX(0);
+  transition: transform 0.3s ease;
+}
+
+.reflection-sidebar:not(.visible) {
+  transform: translateX(100%);
 }
 
 /* Floating Finish Button */
@@ -345,6 +405,53 @@ body {
   display: flex;
   align-items: flex-end;
   gap: 0.5rem;
+  width: 100%;
+
+  .chat-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: 0.5rem;
+
+    .complete-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: background-color 0.2s;
+      white-space: nowrap;
+      height: 40px;
+
+      &:hover:not(:disabled) {
+        background-color: var(--primary-dark);
+      }
+
+      &:disabled {
+        background-color: var(--text-secondary);
+        cursor: not-allowed;
+        opacity: 0.7;
+      }
+
+      svg {
+        width: 1rem;
+        height: 1rem;
+      }
+    }
+
+    .send-button {
+      height: 40px;
+      width: 40px;
+    }
+  }
+
+  gap: 0.5rem;
 }
 
 .chat-input {
@@ -419,7 +526,7 @@ body {
 
 .mood-display {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .mood-emoji {
@@ -430,6 +537,32 @@ body {
 .mood-display h3 {
   font-size: 1.25rem;
   color: var(--text);
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.mood-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.mood-chip {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--primary-light);
+  color: white;
+  padding: 0.35rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.mood-chip:hover {
+  background-color: var(--primary);
+  transform: translateY(-1px);
 }
 
 .summary-section {

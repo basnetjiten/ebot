@@ -24,16 +24,14 @@ interface Message {
   sender: 'user' | 'bot';
   content: string;
   timestamp: Date;
-  analysis?: AnalysisResult;
+  analysisData?: AnalysisResult;
 }
 
+// Type for the detailed analysis shown in the summary view
 interface AnalysisResult {
   summary: string;
-  feedback: string;
-  mood?: string;
+  moods?: string[];
   goals?: string[];
-  moodEmoji?: string;
-  keyInsights?: string[];
 }
 
 interface ReflectionPayload {
@@ -42,18 +40,7 @@ interface ReflectionPayload {
   content: string;
 }
 
-const moodEmojis: Record<string, string> = {
-  happy: '😊',
-  sad: '😢',
-  neutral: '😐',
-  excited: '🤩',
-  grateful: '🙏',
-  tired: '😴',
-  productive: '💪',
-  stressed: '😫',
-  relaxed: '😌',
-  motivated: '🔥'
-};
+
 
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -61,8 +48,7 @@ function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [reflectionType, setReflectionType] = useState<'morning' | 'evening'>('morning');
-  const [finalAnalysis, setFinalAnalysis] = useState<AnalysisResult | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [saveStatus, setSaveStatus] = useState<{ success: boolean; message: string } | null>(null);
   const saveStatusRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -77,13 +63,13 @@ function App() {
     }
   }, [saveStatus]);
 
-  const addMessage = (sender: 'user' | 'bot', content: string, analysis?: AnalysisResult) => {
+  const addMessage = (sender: 'user' | 'bot', content: string, analysisData?: AnalysisResult) => {
     const newMessage: Message = {
       id: Date.now().toString(),
       sender,
       content,
       timestamp: new Date(),
-      analysis
+      analysisData
     };
     setMessages(prev => [...prev, newMessage]);
   };
@@ -106,16 +92,19 @@ function App() {
 
     try {
       const response = await axios.post('http://localhost:3000/api/reflections', payload);
-      const analysis: AnalysisResult = response.data.data.analysis;
+      // Extract the analysis data from the response
+      const analysis = response.data.data.analysis;
 
-      // Add mood emoji if mood is detected
-      if (analysis.mood) {
-        const moodKey = analysis.mood.toLowerCase();
-        analysis.moodEmoji = moodEmojis[moodKey] || '🤔';
-      }
+      // The feedback is nested under analysis.feedback
+      const feedback: string = analysis?.feedback || 'I received a response, but it seems to be empty.';
 
-      addMessage('bot', analysis.feedback, analysis);
-      setFinalAnalysis(analysis);
+      // Add the bot's message with the analysis data
+      addMessage('bot', feedback, {
+        moods: analysis?.mood?.emotions,
+        summary: analysis?.summary,
+        goals: analysis?.goals,
+
+      });
     } catch (error) {
       addMessage('bot', 'Sorry, I encountered an error. Please try again.');
       console.error('Error submitting reflection:', error);
@@ -125,48 +114,48 @@ function App() {
   };
 
   const handleComplete = async () => {
-    if (!finalAnalysis) return;
-
-    setIsSaving(true);
     setSaveStatus(null);
+    console.log("About to process completion");
 
     try {
-      const payload = {
-        userId: 'user1',
-        type: reflectionType,
-        content: messages.filter(m => m.sender === 'user').map(m => m.content).join('\n'),
-        analysis: finalAnalysis,
-        timestamp: new Date().toISOString()
+      // Find the latest bot response that contains analysis data
+      const lastBotMessage = [...messages].reverse().find(msg =>
+        msg.sender === 'bot' &&
+        msg.analysisData // Check if analysis data exists
+      );
+
+      console.log('Found last bot message:', lastBotMessage);
+      if (!lastBotMessage?.analysisData) {
+        throw new Error('No analysis data found in bot messages');
+      }
+
+      const { moods, summary, goals } = lastBotMessage.analysisData;
+
+      const newAnalysis: AnalysisResult = {
+        summary: summary || 'No summary available.',
+        moods: moods || [],
+        goals: goals || [],
+
       };
 
-      // Save the reflection to the server
-      await axios.post('http://localhost:3000/api/reflections/save', payload);
 
-      setSaveStatus({
-        success: true,
-        message: 'Reflection saved successfully!'
-      });
 
-      // Add a small delay before showing the summary
-      setTimeout(() => {
-        setIsCompleted(true);
-      }, 1000);
-
+      setAnalysisResult(newAnalysis);
+      setIsCompleted(true);
     } catch (error) {
-      console.error('Error saving reflection:', error);
+      console.error('Error finishing reflection:', error);
       setSaveStatus({
         success: false,
-        message: 'Failed to save reflection. Please try again.'
+        message: 'Failed to get the final analysis. Please try again.'
       });
-    } finally {
-      setIsSaving(false);
     }
   };
+
 
   const handleNewChat = () => {
     setIsCompleted(false);
     setMessages([]);
-    setFinalAnalysis(null);
+    setAnalysisResult(null);
   };
 
   const getPlaceholder = () => {
@@ -181,47 +170,33 @@ function App() {
 
   return (
     <div className="app">
-      <div className="chat-container">
-        {/* Sidebar */}
-        <div className="sidebar">
-          <div className="sidebar-header">
-            <h2>Reflection Journal</h2>
-            <div className="reflection-type-selector">
-              <span className={`type-option ${reflectionType === 'morning' ? 'active' : ''}`}
-                onClick={() => setReflectionType('morning')}>
-                ☀️ Morning
-              </span>
-              <span className={`type-option ${reflectionType === 'evening' ? 'active' : ''}`}
-                onClick={() => setReflectionType('evening')}>
-                🌙 Evening
-              </span>
-            </div>
+      <div className="chat-container with-sidebar">
+        {/* Sidebar Toggle */}
+        <div className="sidebar-toggle">
+          <div className="type-selector">
+            <span
+              className={`type-option ${reflectionType === 'morning' ? 'active' : ''}`}
+              onClick={() => setReflectionType('morning')}
+            >
+              ☀️ Morning
+            </span>
+            <span
+              className={`type-option ${reflectionType === 'evening' ? 'active' : ''}`}
+              onClick={() => setReflectionType('evening')}
+            >
+              🌙 Evening
+            </span>
           </div>
 
-          {!isCompleted && finalAnalysis && (
-            <button onClick={handleComplete} className="complete-button">
-              <CheckIcon /> Complete Reflection
-            </button>
-          )}
-
-          {isCompleted && (
-            <div className="completion-actions">
-              <button onClick={handleNewChat} className="new-chat-button">
-                Start New Reflection
+          {!isCompleted && messages.length > 0 && (
+            <div className="complete-button-container">
+              <button
+                onClick={handleComplete}
+                className="complete-button"
+                disabled={isSubmitting}
+              >
+                <CheckIcon /> Complete Reflection
               </button>
-              {finalAnalysis?.keyInsights && (
-                <div className="key-insights">
-                  <h3>Key Insights</h3>
-                  <div className="insights-grid">
-                    {finalAnalysis.keyInsights.map((insight: string, i: number) => (
-                      <div key={i} className="insight-card">
-                        <div className="insight-emoji">💡</div>
-                        <p>{insight}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -233,20 +208,6 @@ function App() {
               <div className="chat-header">
                 <h2>{reflectionType === 'morning' ? '☀️ Morning Reflection' : '🌙 Evening Reflection'}</h2>
               </div>
-
-              {/* Floating Finish Button */}
-              {messages.length > 0 && !isCompleted && (
-                <div className="floating-finish-container">
-                  <button
-                    onClick={handleComplete}
-                    className="floating-finish-button"
-                    disabled={isSaving || !finalAnalysis}
-                  >
-                    <CheckIcon />
-                    <span>{isSaving ? 'Saving...' : 'Finish Entry'}</span>
-                  </button>
-                </div>
-              )}
               {saveStatus && (
                 <div ref={saveStatusRef} className={`status-message ${saveStatus.success ? 'success' : 'error'}`}>
                   {saveStatus.message}
@@ -298,71 +259,122 @@ function App() {
                       }
                     }}
                   />
-                  <button
-                    type="submit"
-                    className="send-button"
-                    disabled={isSubmitting || !input.trim()}
-                    aria-label="Send message"
-                  >
-                    <SendIcon />
-                  </button>
+                  <div className="chat-buttons">
+                    <button
+                      type="submit"
+                      className="send-button"
+                      disabled={isSubmitting || !input.trim()}
+                      aria-label="Send message"
+                    >
+                      <SendIcon />
+                    </button>
+                  </div>
                 </div>
               </form>
             </>
           ) : (
-            <div className="summary-view">
-              <div className="summary-card">
-                <h2>Your {reflectionType === 'morning' ? 'Morning' : 'Evening'} Reflection</h2>
-
-                <div className="mood-display">
-                  <div className="mood-emoji">
-                    {finalAnalysis?.moodEmoji || '🤔'}
-                  </div>
-                  <h3>Mood: {finalAnalysis?.mood || 'Neutral'}</h3>
-                </div>
-
-                <div className="summary-section">
-                  <h3>Summary</h3>
-                  <div className="summary-content">
-                    {finalAnalysis?.summary || 'No summary available.'}
-                  </div>
-                </div>
-
-                {finalAnalysis?.goals && finalAnalysis.goals.length > 0 && (
-                  <div className="goals-section">
-                    <h3>Your Goals</h3>
-                    <ul className="goals-list">
-                      {finalAnalysis.goals.map((goal: string, i: number) => (
-                        <li key={i} className="goal-item">
-                          <span className="goal-checkbox"></span>
-                          <span>{goal}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                <div className="key-insights">
-                  <h3>Key Insights</h3>
-                  <div className="insights-grid">
-                    <div className="insight-card">
-                      <div className="insight-emoji">💡</div>
-                      <p>Reflect on your progress tomorrow</p>
-                    </div>
-                    <div className="insight-card">
-                      <div className="insight-emoji">🎯</div>
-                      <p>Focus on one key goal</p>
-                    </div>
-                    <div className="insight-card">
-                      <div className="insight-emoji">🧘</div>
-                      <p>Take time to relax</p>
-                    </div>
-                  </div>
-                </div>
+            <div className="chat-interface">
+              <div className="chat-header">
+                <h2>{reflectionType === 'morning' ? '☀️ Morning Reflection' : '🌙 Evening Reflection'}</h2>
               </div>
+              <div className="chat-window">
+                {messages.map((msg) => (
+                  <div key={msg.id} className={`message-container ${msg.sender}`}>
+                    <div className={`message ${msg.sender}`}>
+                      <div className="message-content">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                      </div>
+                      <div className="message-time">{formatTime(msg.timestamp)}</div>
+                    </div>
+                  </div>
+                ))}
+                <div ref={chatEndRef} />
+              </div>
+
+              <form onSubmit={handleSubmit} className="chat-input-container">
+                <div className="input-wrapper">
+                  <textarea
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Continue your reflection..."
+                    rows={1}
+                    className="chat-input"
+                    disabled={isSubmitting}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSubmit(e);
+                      }
+                    }}
+                  />
+                  <div className="chat-buttons">
+                    <button
+                      type="submit"
+                      className="send-button"
+                      disabled={isSubmitting || !input.trim()}
+                      aria-label="Send message"
+                    >
+                      <SendIcon />
+                    </button>
+                  </div>
+                </div>
+              </form>
             </div>
           )}
         </div>
+      </div>
+
+      {/* Reflection Results Sidebar */}
+      <div className={`reflection-sidebar ${isCompleted ? 'visible' : ''}`}>
+        {isCompleted && analysisResult && (
+          <div className="summary-view">
+            <div className="summary-card">
+              <h2>Your {reflectionType === 'morning' ? 'Morning' : 'Evening'} Reflection</h2>
+
+              <div className="mood-display">
+                <h3>Your Moods</h3>
+                <div className="mood-chips">
+                  {analysisResult.moods && analysisResult.moods.length > 0 ? (
+                    analysisResult.moods.map((mood: string, index: number) => (
+                      <span key={index} className="mood-chip">
+                        {mood}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="mood-chip">Neutral</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="summary-section">
+                <h3>Summary</h3>
+                <div className="summary-content">
+                  {analysisResult.summary || 'No summary available.'}
+                </div>
+              </div>
+
+              {analysisResult.goals && analysisResult.goals.length > 0 && (
+                <div className="goals-section">
+                  <h3>Your Goals</h3>
+                  <ul className="goals-list">
+                    {analysisResult.goals.map((goal: string, i: number) => (
+                      <li key={i} className="goal-item">
+                        <span className="goal-checkbox"></span>
+                        <span>{goal}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="completion-actions">
+                <button onClick={handleNewChat} className="new-chat-button">
+                  Start New Reflection
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
