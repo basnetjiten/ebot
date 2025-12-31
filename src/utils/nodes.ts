@@ -1,7 +1,7 @@
 import { AgentStateType } from './state';
 import { ReflectionAnalyzer } from './tools';
-import { SearchTool } from './searchTool';
-import { ReflectionEntry, MoodAnalysis, Todo } from '../types';
+import { START, END } from '@langchain/langgraph';
+import { Todo } from '../types';
 
 // Node for processing reflection entries
 export const reflectionProcessor = async (state: AgentStateType): Promise<Partial<AgentStateType>> => {
@@ -21,7 +21,7 @@ export const reflectionProcessor = async (state: AgentStateType): Promise<Partia
     const todosData = await ReflectionAnalyzer.extractTodos(content);
     const todos = JSON.parse(todosData) as string[];
 
-    const todosWithUserId: Todo[] = todos.map(todo => ({
+    const suggestedTodos: Todo[] = todos.map(todo => ({
       id: crypto.randomUUID(),
       userId: state.userId,
       title: todo,
@@ -33,7 +33,7 @@ export const reflectionProcessor = async (state: AgentStateType): Promise<Partia
     }));
 
     return {
-      suggestedTodos: todosWithUserId,
+      suggestedTodos: suggestedTodos,
       currentStep: 'mood_analysis'
     };
   } catch (error) {
@@ -194,7 +194,7 @@ export const reflectionRouter = (state: AgentStateType) => {
   }
 
   if (state.error) {
-    return '__end__';
+    return END;
   }
 
   switch (state.currentStep) {
@@ -211,15 +211,12 @@ export const reflectionRouter = (state: AgentStateType) => {
     case 'completion':
       return 'completionProcessor';
     case 'completed':
-      return '__end__';
+      return END;
     case 'error':
-      return '__end__';
+      return END;
     default:
       return 'reflectionProcessor';
   }
 };
 
-// Legacy node exports for backward compatibility
-export const messageProcessor = reflectionProcessor;
-export const toolExecutor = feedbackGenerator;
-export const router = reflectionRouter;
+

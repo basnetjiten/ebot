@@ -28,10 +28,19 @@ interface Message {
 }
 
 // Type for the detailed analysis shown in the summary view
+interface SuggestedTodo {
+  id: string;
+  title: string;
+  completed: boolean;
+  description: string;
+  priority: 'low' | 'medium' | 'high';
+  sourceReflectionId?: string;
+}
+
 interface AnalysisResult {
   summary: string;
   moods?: string[];
-  goals?: string[];
+  suggestedTodos?: SuggestedTodo[];
 }
 
 interface ReflectionPayload {
@@ -102,8 +111,14 @@ function App() {
       addMessage('bot', feedback, {
         moods: analysis?.mood?.emotions,
         summary: analysis?.summary,
-        goals: analysis?.goals,
-
+        suggestedTodos: analysis?.suggestedTodos?.map((todo: any) => ({
+          id: todo.id || `goal-${Math.random().toString(36).substr(2, 9)}`,
+          title: todo.title || todo.text || todo, // Handle different possible formats
+          completed: todo.completed || false,
+          description: todo.description || '',
+          priority: todo.priority || 'medium',
+          sourceReflectionId: todo.sourceReflectionId
+        })) || [],
       });
     } catch (error) {
       addMessage('bot', 'Sorry, I encountered an error. Please try again.');
@@ -129,12 +144,12 @@ function App() {
         throw new Error('No analysis data found in bot messages');
       }
 
-      const { moods, summary, goals } = lastBotMessage.analysisData;
+      const { moods, summary, suggestedTodos } = lastBotMessage.analysisData;
 
       const newAnalysis: AnalysisResult = {
         summary: summary || 'No summary available.',
         moods: moods || [],
-        goals: goals || [],
+        suggestedTodos: suggestedTodos || [],
 
       };
 
@@ -353,14 +368,29 @@ function App() {
                 </div>
               </div>
 
-              {analysisResult.goals && analysisResult.goals.length > 0 && (
+              {analysisResult.suggestedTodos && analysisResult.suggestedTodos.length > 0 && (
                 <div className="goals-section">
                   <h3>Your Goals</h3>
                   <ul className="goals-list">
-                    {analysisResult.goals.map((goal: string, i: number) => (
-                      <li key={i} className="goal-item">
-                        <span className="goal-checkbox"></span>
-                        <span>{goal}</span>
+                    {analysisResult.suggestedTodos.map((todo) => (
+                      <li key={todo.id} className={`goal-item ${todo.completed ? 'completed' : ''}`}>
+                        <label className="goal-checkbox-container">
+                          <input
+                            type="checkbox"
+                            checked={todo.completed}
+                            onChange={() => {
+                              setAnalysisResult(prev => ({
+                                ...prev!,
+                                goals: prev!.suggestedTodos?.map(g =>
+                                  g.id === todo.id ? { ...g, completed: !g.completed } : g
+                                )
+                              }));
+                            }}
+                            className="goal-checkbox"
+                          />
+                          <span className="checkmark"></span>
+                        </label>
+                        <span className="goal-text">{todo.title}</span>
                       </li>
                     ))}
                   </ul>
