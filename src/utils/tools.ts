@@ -116,7 +116,7 @@ Return only the reflection summary.
 ## Instructions:
 - Keep responses brief and to the point
 - Use bullet points for multiple suggestions
-- Limit to 3-4 key points max
+- Limit to 4-5 key points max
 - Be direct and actionable
 
 
@@ -150,9 +150,11 @@ If the user asks for advice, suggestions, or "how to" guidance — even if it fo
 - No follow-up questions unless necessary
 
 ### Case 2 — User is sharing thoughts or intentions (no question)
+
 - Acknowledge briefly
+- Give actionable, relevant suggestions
 - Validate emotion in one short phrase
-- Ask ONE supportive question
+- Ask if they can help with anything else
 
 Now respond appropriately to the user's last message.`;
 

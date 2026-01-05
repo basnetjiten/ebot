@@ -187,6 +187,23 @@ function App() {
                   {analysisResult.summary}
                 </p>
               </div>
+
+              {analysisResult.suggestedTodos && analysisResult.suggestedTodos.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Action Items</h3>
+                  <div className="space-y-2">
+                    {analysisResult.suggestedTodos.map((todo) => (
+                      <div key={todo.id} className="flex items-start gap-2.5 p-3 bg-white border border-slate-100 rounded-xl shadow-sm hover:border-sky-100 transition-colors">
+                        <div className={`mt-1 w-1.5 h-1.5 rounded-full flex-shrink-0 ${todo.priority === 'high' ? 'bg-rose-500' : todo.priority === 'medium' ? 'bg-amber-500' : 'bg-sky-500'
+                          }`} />
+                        <div>
+                          <p className="text-xs font-semibold text-slate-800 line-clamp-2">{todo.title}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
         </div>
