@@ -1,45 +1,101 @@
-import { MoodAnalysis, Todo, Goal } from '../types';
+import { Todo } from '../types';
 import { model } from './model';
+import { BaseMessage } from '@langchain/core/messages';
 
 // Mock implementation - in production, these would use actual AI models
 export class ReflectionAnalyzer {
-  static analyzeMood(content: string): MoodAnalysis {
-    // Simple keyword-based mood analysis (replace with actual AI model)
-    const positiveWords = ['happy', 'excited', 'grateful', 'optimistic', 'energetic', 'motivated'];
-    const negativeWords = ['sad', 'frustrated', 'anxious', 'tired', 'worried', 'disappointed'];
-    const emotionWords = ['joyful', 'calm', 'stressed', 'confident', 'hopeful', 'angry'];
+  private static cleanJSONResponse(content: string): string {
+    // Remove markdown code blocks if present
+    let cleaned = content.replace(/```json\s?|```/g, '').trim();
+    // In case there's any other text before/after the JSON
+    const jsonStart = cleaned.indexOf('{');
+    const jsonEnd = cleaned.lastIndexOf('}');
+    const arrayStart = cleaned.indexOf('[');
+    const arrayEnd = cleaned.lastIndexOf(']');
 
-    const words = content.toLowerCase().split(/\s+/);
-    const positiveCount = words.filter(w => positiveWords.includes(w)).length;
-    const negativeCount = words.filter(w => negativeWords.includes(w)).length;
-    const emotions = words.filter(w => emotionWords.includes(w));
+    if (jsonStart !== -1 && jsonEnd !== -1 && (arrayStart === -1 || jsonStart < arrayStart)) {
+      cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+    } else if (arrayStart !== -1 && arrayEnd !== -1) {
+      cleaned = cleaned.substring(arrayStart, arrayEnd + 1);
+    }
 
-    const score = (positiveCount - negativeCount) / Math.max(words.length, 1);
-    const intensity = Math.min(1, emotions.length / 5);
-
-    return {
-      score: Math.max(-1, Math.min(1, score)),
-      emotions: emotions.length > 0 ? emotions : ['neutral'],
-      intensity,
-      confidence: 0.7 // Mock confidence
-    };
+    return cleaned;
   }
 
-  static generateSummary(content: string): string {
-    return content;
+  static async analyzeKeyWords(content: string): Promise<Array<string>> {
+    const prompt = `
+You are a keyword extraction assistant.
+
+Extract meaningful keywords from the user's text.
+
+Rules:
+- Focus on topics, actions, and concepts
+- Ignore emotions and filler words
+- Prefer nouns and verb phrases
+- Return 2-3 keywords
+- No explanations
+
+Return ONLY valid JSON in this format:
+{
+  "keywords": ["keyword1", "keyword2", "keyword3"]
+}
+
+User text:
+"""${content}"""
+`.trim();
+
+    try {
+      const response = await model.invoke(prompt);
+      const cleaned = this.cleanJSONResponse(response.content as string);
+      const parsed = JSON.parse(cleaned);
+
+      if (Array.isArray(parsed.keywords)) {
+        return parsed.keywords;
+      }
+
+      return [];
+    } catch (error) {
+      console.error('Keyword extraction failed:', error);
+      return [];
+    }
   }
+
+
+  static async generateSummary(messages: BaseMessage[]): Promise<string> {
+    const history = messages
+      .map(msg => `${msg.type === 'human' ? 'User' : 'Assistant'}: ${msg.content}`)
+      .join('\n');
+
+    const prompt = `
+You are a summary assistant.
+
+Summarize the following conversation into a single concise sentence (max 20 words).
+Focus on the main topics and outcomes.
+
+Conversation:
+${history}
+`.trim();
+
+    try {
+      const response = await model.invoke(prompt);
+      return response.content as string;
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      return 'Summary unavailable';
+    }
+  }
+
   static async generateFeedback(
     content: string,
-    mood: MoodAnalysis,
-    goals: Goal[],
     type: 'morning' | 'evening',
-    messageHistory: Array<{ sender: string, content: string }> = []
+    messages: BaseMessage[] = []
   ): Promise<string> {
     const reflectionType = type === 'morning' ? 'Morning Intention' : 'Evening Reflection';
 
     // Format message history
-    const history = messageHistory
-      .map(msg => `${msg.sender === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+    const history = messages
+      .filter(msg => msg.content !== content) // Exclude the current message if it's already in the list
+      .map(msg => `${msg.type === 'human' ? 'User' : 'Assistant'}: ${msg.content}`)
       .join('\n');
 
     const prompt = `You are a warm, practical, conversational assistant — like a trusted colleague who also cares. You are not restricted to reflection-only responses.
@@ -47,7 +103,7 @@ export class ReflectionAnalyzer {
 ## Instructions:
 - Keep responses brief and to the point
 - Use bullet points for multiple suggestions
-- Limit to 2-3 key points max
+- Limit to 3-4 key points max
 - Be direct and actionable
 
 
@@ -99,7 +155,7 @@ Now respond appropriately to the user's last message.`;
 
 
 
-  static async extractTodos(content: string): Promise<string> {
+  static async extractTodos(content: string): Promise<string[]> {
     const prompt = `
 You are a productivity assistant.
 
@@ -121,73 +177,44 @@ Output format:
 
     try {
       const response = await model.invoke(prompt);
-      return response.content as string;
+      const cleaned = this.cleanJSONResponse(response.content as string);
+      const parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+      return [];
     } catch (error) {
       console.error('Error generating todos:', error);
-      return '[]';
+      return [];
     }
   }
 
-
-
-  static analyzeGoalAlignment(content: string, goals: Goal[]): { aligned: boolean; suggestions: string[] } {
-    const suggestions: string[] = [];
-    let aligned = false;
-
-    if (goals.length === 0) {
-      suggestions.push("Consider setting some clear goals to guide your reflections.");
-      return { aligned, suggestions };
-    }
-
-    // Simple keyword matching for goal alignment
-    const contentLower = content.toLowerCase();
-    for (const goal of goals) {
-      const goalWords = goal.title.toLowerCase().split(/\s+/);
-      const matches = goalWords.filter(word => contentLower.includes(word)).length;
-
-      if (matches >= 2) {
-        aligned = true;
-        suggestions.push(`Your reflection aligns well with your goal: "${goal.title}"`);
-      }
-    }
-
-    if (!aligned) {
-      suggestions.push("Try to connect your daily reflections with your long-term goals.");
-    }
-
-    return { aligned, suggestions };
-  }
 }
 
 // Tool definitions for LangGraph
 export const availableTools = [
   {
-    name: 'analyze_mood',
-    description: 'Analyzes the mood and emotional state from reflection text',
-    func: (content: string) => ReflectionAnalyzer.analyzeMood(content),
+    name: 'analyze_keywords',
+    description: 'Extracts meaningful keywords from reflection text',
+    func: (content: string) => ReflectionAnalyzer.analyzeKeyWords(content),
   },
   {
     name: 'generate_summary',
     description: 'Creates a concise summary of reflection content',
-    func: (content: string) => ReflectionAnalyzer.generateSummary(content),
+    func: (messages: BaseMessage[]) => ReflectionAnalyzer.generateSummary(messages),
   },
   {
     name: 'generate_feedback',
-    description: 'Generates personalized feedback based on reflection and mood',
-    func: async (content: string, mood: MoodAnalysis, goals: Goal[], type: 'morning' | 'evening') =>
-      await ReflectionAnalyzer.generateFeedback(content, mood, goals, type),
+    description: 'Generates personalized feedback based on reflection and keywords',
+    func: async (content: string, type: 'morning' | 'evening', messages: BaseMessage[] = []) =>
+      await ReflectionAnalyzer.generateFeedback(content, type, messages),
   },
   {
     name: 'extract_todos',
     description: 'Extracts actionable items from reflection text',
     func: (content: string) => ReflectionAnalyzer.extractTodos(content),
   },
-  {
-    name: 'analyze_goal_alignment',
-    description: 'Analyzes how well reflection aligns with user goals',
-    func: (content: string, goals: Goal[]) =>
-      ReflectionAnalyzer.analyzeGoalAlignment(content, goals),
-  },
+
 ];
 
 

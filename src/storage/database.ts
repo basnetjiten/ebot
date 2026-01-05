@@ -1,11 +1,10 @@
-import { ReflectionEntry, Goal, Todo, User } from '../types';
+import { ReflectionEntry, Todo, User } from '../types';
 
 // In-memory database implementation
 // In production, replace this with actual database (PostgreSQL, MongoDB, etc.)
 export class InMemoryDatabase {
     private users = new Map<string, User>();
     private reflections = new Map<string, ReflectionEntry>();
-    private goals = new Map<string, Goal>();
     private todos = new Map<string, Todo>();
 
     // User operations
@@ -40,16 +39,7 @@ export class InMemoryDatabase {
         };
         this.reflections.set(reflection.id, reflection);
 
-        // Update associated goals if any
-        if (reflection.goals && reflection.goals.length > 0) {
-            for (const goalId of reflection.goals) {
-                const goal = await this.getGoal(goalId);
-                if (goal && !goal.reflectionEntries.includes(reflection.id)) {
-                    goal.reflectionEntries.push(reflection.id);
-                    await this.updateGoal(goalId, goal);
-                }
-            }
-        }
+
 
         return reflection;
     }
@@ -87,14 +77,7 @@ export class InMemoryDatabase {
         const reflection = this.reflections.get(reflectionId);
         if (!reflection) return false;
 
-        // Remove from associated goals
-        for (const goalId of reflection.goals || []) {
-            const goal = await this.getGoal(goalId);
-            if (goal) {
-                goal.reflectionEntries = goal.reflectionEntries.filter(id => id !== reflectionId);
-                await this.updateGoal(goalId, goal);
-            }
-        }
+
 
         // Remove associated todos
         const associatedTodos = Array.from(this.todos.values())
@@ -105,57 +88,6 @@ export class InMemoryDatabase {
         }
 
         return this.reflections.delete(reflectionId);
-    }
-
-    // Goal operations
-    async createGoal(goalData: Omit<Goal, 'id' | 'createdAt' | 'updatedAt'>): Promise<Goal> {
-        const goal: Goal = {
-            id: this.generateId(),
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            ...goalData
-        };
-        this.goals.set(goal.id, goal);
-        return goal;
-    }
-
-    async getGoal(goalId: string): Promise<Goal | null> {
-        return this.goals.get(goalId) || null;
-    }
-
-    async updateGoal(goalId: string, updates: Partial<Goal>): Promise<Goal | null> {
-        const goal = this.goals.get(goalId);
-        if (!goal) return null;
-
-        const updatedGoal = {
-            ...goal,
-            ...updates,
-            updatedAt: new Date()
-        };
-        this.goals.set(goalId, updatedGoal);
-        return updatedGoal;
-    }
-
-    async getUserGoals(userId: string): Promise<Goal[]> {
-        return Array.from(this.goals.values())
-            .filter(goal => goal.userId === userId)
-            .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-    }
-
-    async deleteGoal(goalId: string): Promise<boolean> {
-        const goal = this.goals.get(goalId);
-        if (!goal) return false;
-
-        // Remove from associated reflections
-        for (const reflectionId of goal.reflectionEntries) {
-            const reflection = await this.getReflection(reflectionId);
-            if (reflection && reflection.goals) {
-                reflection.goals = reflection.goals.filter(id => id !== goalId);
-                await this.updateReflection(reflectionId, reflection);
-            }
-        }
-
-        return this.goals.delete(goalId);
     }
 
     // Todo operations
@@ -198,60 +130,6 @@ export class InMemoryDatabase {
         return this.todos.delete(todoId);
     }
 
-    // Analytics operations
-    async getMoodAnalytics(userId: string, period: 'day' | 'week' | 'month'): Promise<{
-        period: string;
-        averageMood: number;
-        moodData: Array<{
-            date: Date;
-            score: number;
-            emotions: string[];
-            intensity: number;
-        }>;
-        totalReflections: number;
-    }> {
-        const userReflections = await this.getUserReflections(userId);
-        const reflectionsWithMood = userReflections.filter(r => r.mood);
-
-        // Calculate period cutoff
-        const now = new Date();
-        let cutoffDate: Date;
-
-        switch (period) {
-            case 'day':
-                cutoffDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-                break;
-            case 'week':
-                cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                break;
-            case 'month':
-                cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                break;
-        }
-
-        const periodReflections = reflectionsWithMood.filter(
-            reflection => reflection.timestamp >= cutoffDate
-        );
-
-        const moodData = periodReflections.map(reflection => ({
-            date: reflection.timestamp,
-            score: reflection.mood!.score,
-            emotions: reflection.mood!.emotions,
-            intensity: reflection.mood!.intensity
-        }));
-
-        const averageMood = moodData.length > 0
-            ? moodData.reduce((sum, data) => sum + data.score, 0) / moodData.length
-            : 0;
-
-        return {
-            period,
-            averageMood,
-            moodData,
-            totalReflections: periodReflections.length
-        };
-    }
-
     // Utility methods
     private generateId(): string {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -261,13 +139,11 @@ export class InMemoryDatabase {
     async exportData(): Promise<{
         users: User[];
         reflections: ReflectionEntry[];
-        goals: Goal[];
         todos: Todo[];
     }> {
         return {
             users: Array.from(this.users.values()),
             reflections: Array.from(this.reflections.values()),
-            goals: Array.from(this.goals.values()),
             todos: Array.from(this.todos.values())
         };
     }
@@ -275,19 +151,16 @@ export class InMemoryDatabase {
     async importData(data: {
         users: User[];
         reflections: ReflectionEntry[];
-        goals: Goal[];
         todos: Todo[];
     }): Promise<void> {
         // Clear existing data
         this.users.clear();
         this.reflections.clear();
-        this.goals.clear();
         this.todos.clear();
 
         // Import data
         data.users.forEach(user => this.users.set(user.id, user));
         data.reflections.forEach(reflection => this.reflections.set(reflection.id, reflection));
-        data.goals.forEach(goal => this.goals.set(goal.id, goal));
         data.todos.forEach(todo => this.todos.set(todo.id, todo));
     }
 }

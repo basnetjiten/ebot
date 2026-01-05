@@ -3,11 +3,8 @@ import cors from 'cors';
 import {
     submitReflection,
     getReflectionHistory,
-    createGoal,
-    getUserGoals,
     updateTodoStatus,
-    getUserTodos,
-    getMoodAnalytics
+    getUserTodos
 } from './routes';
 
 const app = express();
@@ -20,11 +17,8 @@ app.use(express.json());
 // API Routes
 app.post('/api/reflections', submitReflection);
 app.get('/api/reflections/:userId', getReflectionHistory);
-app.post('/api/goals', createGoal);
-app.get('/api/goals/:userId', getUserGoals);
 app.put('/api/todos/:todoId', updateTodoStatus);
 app.get('/api/todos/:userId', getUserTodos);
-app.get('/api/analytics/mood/:userId', getMoodAnalytics);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -42,16 +36,9 @@ app.get('/', (req, res) => {
                 'POST /api/reflections': 'Submit a reflection for analysis',
                 'GET /api/reflections/:userId': 'Get user reflection history'
             },
-            goals: {
-                'POST /api/goals': 'Create a new goal',
-                'GET /api/goals/:userId': 'Get user goals'
-            },
             todos: {
                 'PUT /api/todos/:todoId': 'Update todo status',
                 'GET /api/todos/:userId': 'Get user todos'
-            },
-            analytics: {
-                'GET /api/analytics/mood/:userId': 'Get mood analytics'
             }
         }
     });

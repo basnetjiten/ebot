@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { compiledAgent } from '../agent';
-import { ReflectionEntry, Goal, Todo, MobileAPIResponse } from '../types';
+import { ReflectionEntry, Todo, MobileAPIResponse } from '../types';
 import { database } from '../storage/database';
 
 // Helper function to create API response
@@ -14,7 +14,7 @@ const createResponse = <T>(data?: T, error?: string): MobileAPIResponse<T> => ({
 // Submit a reflection entry for analysis
 export const submitReflection = async (req: Request, res: Response) => {
     try {
-        const { userId, type, content, userGoals } = req.body;
+        const { userId, type, content, messages } = req.body;
 
         if (!userId || !type || !content) {
             return res.status(400).json(
@@ -34,29 +34,25 @@ export const submitReflection = async (req: Request, res: Response) => {
             type,
             timestamp: new Date(),
             content,
-            goals: userGoals || []
         };
 
         // Store reflection
         const reflection = await database.createReflection(reflectionData);
 
-        // Get user goals
-        const userGoalList = await database.getUserGoals(userId);
+
 
         // Run the reflection analysis agent
         const result = await compiledAgent.invoke({
             userId,
             currentReflection: reflection,
-            userGoals: userGoalList,
             currentStep: 'initial',
             analysisComplete: false,
-            messages: [],
+            messages: messages || [],
             suggestedTodos: [],
             createdTodos: [],
-            moodAnalysis: null,
+            keywordAnalysis: [],
             summary: '',
             feedback: '',
-            goalAlignment: { aligned: false, suggestions: [] },
             error: null
         });
 
@@ -77,11 +73,10 @@ export const submitReflection = async (req: Request, res: Response) => {
             content: updatedReflection?.content,
             reflection: updatedReflection,
             analysis: {
-                mood: result.moodAnalysis,
+                keywords: result.keywordAnalysis,
                 summary: result.summary,
                 feedback: result.feedback,
-                suggestedTodos: result.suggestedTodos,
-                goalAlignment: result.goalAlignment
+                suggestedTodos: result.suggestedTodos
             }
         }));
 
@@ -115,59 +110,6 @@ export const getReflectionHistory = async (req: Request, res: Response) => {
 
     } catch (error) {
         console.error('Error fetching reflection history:', error);
-        res.status(500).json(
-            createResponse(null, 'Internal server error')
-        );
-    }
-};
-
-// Create a new goal
-export const createGoal = async (req: Request, res: Response) => {
-    try {
-        const { userId, title, description, targetDate } = req.body;
-
-        if (!userId || !title) {
-            return res.status(400).json(
-                createResponse(null, 'Missing required fields: userId, title')
-            );
-        }
-
-        const goalData = {
-            userId,
-            title,
-            description: description || '',
-            targetDate: targetDate ? new Date(targetDate) : undefined,
-            status: 'active' as const,
-            reflectionEntries: []
-        };
-
-        const goal = await database.createGoal(goalData);
-        res.json(createResponse(goal));
-
-    } catch (error) {
-        console.error('Error creating goal:', error);
-        res.status(500).json(
-            createResponse(null, 'Internal server error')
-        );
-    }
-};
-
-// Get user's goals
-export const getUserGoals = async (req: Request, res: Response) => {
-    try {
-        const { userId } = req.params;
-
-        if (!userId) {
-            return res.status(400).json(
-                createResponse(null, 'User ID is required')
-            );
-        }
-
-        const userGoals = await database.getUserGoals(userId);
-        res.json(createResponse(userGoals));
-
-    } catch (error) {
-        console.error('Error fetching goals:', error);
         res.status(500).json(
             createResponse(null, 'Internal server error')
         );
@@ -219,35 +161,6 @@ export const getUserTodos = async (req: Request, res: Response) => {
 
     } catch (error) {
         console.error('Error fetching todos:', error);
-        res.status(500).json(
-            createResponse(null, 'Internal server error')
-        );
-    }
-};
-
-// Get mood analytics for user
-export const getMoodAnalytics = async (req: Request, res: Response) => {
-    try {
-        const { userId } = req.params;
-        const { period = 'week' } = req.query;
-
-        if (!userId) {
-            return res.status(400).json(
-                createResponse(null, 'User ID is required')
-            );
-        }
-
-        if (!['day', 'week', 'month'].includes(period as string)) {
-            return res.status(400).json(
-                createResponse(null, 'Period must be one of: day, week, month')
-            );
-        }
-
-        const moodData = await database.getMoodAnalytics(userId, period as 'day' | 'week' | 'month');
-        res.json(createResponse(moodData));
-
-    } catch (error) {
-        console.error('Error fetching mood analytics:', error);
         res.status(500).json(
             createResponse(null, 'Internal server error')
         );

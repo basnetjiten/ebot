@@ -1,6 +1,6 @@
 import { BaseMessage, BaseMessageLike } from "@langchain/core/messages";
 import { Annotation, messagesStateReducer } from "@langchain/langgraph";
-import { ReflectionEntry, MoodAnalysis, Goal, Todo, ReflectionAnalysis } from "../types";
+import { ReflectionEntry, Todo } from "../types";
 
 export const StateAnnotation = Annotation.Root({
   messages: Annotation<BaseMessage[], BaseMessageLike[]>({
@@ -21,9 +21,9 @@ export const StateAnnotation = Annotation.Root({
   }),
 
   // Analysis results
-  moodAnalysis: Annotation<MoodAnalysis | null>({
-    reducer: (left: MoodAnalysis | null, right: MoodAnalysis | null) => right,
-    default: () => null,
+  keywordAnalysis: Annotation<string[] | null>({
+    reducer: (left: string[] | null, right: string[] | null) => right,
+    default: () => [],
   }),
 
   summary: Annotation<string>({
@@ -45,20 +45,6 @@ export const StateAnnotation = Annotation.Root({
   createdTodos: Annotation<Todo[]>({
     reducer: (left: Todo[], right: Todo[]) => right,
     default: () => [],
-  }),
-
-  // Goal tracking
-  userGoals: Annotation<Goal[]>({
-    reducer: (left: Goal[], right: Goal[]) => right,
-    default: () => [],
-  }),
-
-  goalAlignment: Annotation<{
-    aligned: boolean;
-    suggestions: string[];
-  }>({
-    reducer: (left: { aligned: boolean; suggestions: string[] }, right: { aligned: boolean; suggestions: string[] }) => right,
-    default: () => ({ aligned: false, suggestions: [] }),
   }),
 
   // Web search integration

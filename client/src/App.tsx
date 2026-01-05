@@ -2,21 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import './App.css';
+import { motion, AnimatePresence } from 'framer-motion';
+import { HiSun, HiMoon, HiCheck, HiPaperAirplane, HiSparkles, HiChatAlt2, HiPlus } from 'react-icons/hi';
 
-// Icons
-const SendIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
 
 // Define types
 interface Message {
@@ -27,7 +15,6 @@ interface Message {
   analysisData?: AnalysisResult;
 }
 
-// Type for the detailed analysis shown in the summary view
 interface SuggestedTodo {
   id: string;
   title: string;
@@ -39,7 +26,7 @@ interface SuggestedTodo {
 
 interface AnalysisResult {
   summary: string;
-  moods?: string[];
+  keywords?: string[];
   suggestedTodos?: SuggestedTodo[];
 }
 
@@ -49,8 +36,6 @@ interface ReflectionPayload {
   content: string;
 }
 
-
-
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -59,18 +44,12 @@ function App() {
   const [reflectionType, setReflectionType] = useState<'morning' | 'evening'>('morning');
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [saveStatus, setSaveStatus] = useState<{ success: boolean; message: string } | null>(null);
-  const saveStatusRef = useRef<HTMLDivElement>(null);
+
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  useEffect(() => {
-    if (saveStatus) {
-      saveStatusRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [saveStatus]);
+  }, [messages, isSubmitting]);
 
   const addMessage = (sender: 'user' | 'bot', content: string, analysisData?: AnalysisResult) => {
     const newMessage: Message = {
@@ -86,9 +65,8 @@ function App() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const userInput = input.trim();
-    if (!userInput) return;
+    if (!userInput || isSubmitting) return;
 
-    // Add user message
     addMessage('user', userInput);
     setInput('');
     setIsSubmitting(true);
@@ -101,19 +79,15 @@ function App() {
 
     try {
       const response = await axios.post('http://localhost:3000/api/reflections', payload);
-      // Extract the analysis data from the response
       const analysis = response.data.data.analysis;
-
-      // The feedback is nested under analysis.feedback
       const feedback: string = analysis?.feedback || 'I received a response, but it seems to be empty.';
 
-      // Add the bot's message with the analysis data
       addMessage('bot', feedback, {
-        moods: analysis?.mood?.emotions,
+        keywords: analysis?.keywords,
         summary: analysis?.summary,
-        suggestedTodos: analysis?.suggestedTodos?.map((todo: any) => ({
-          id: todo.id || `goal-${Math.random().toString(36).substr(2, 9)}`,
-          title: todo.title || todo.text || todo, // Handle different possible formats
+        suggestedTodos: analysis?.suggestedTodos?.map((todo: SuggestedTodo) => ({
+          id: todo.id || `todo-${Math.random().toString(36).substr(2, 9)}`,
+          title: todo.title || (todo as unknown as { text?: string }).text || String(todo),
           completed: todo.completed || false,
           description: todo.description || '',
           priority: todo.priority || 'medium',
@@ -121,51 +95,27 @@ function App() {
         })) || [],
       });
     } catch (error) {
-      addMessage('bot', 'Sorry, I encountered an error. Please try again.');
+      addMessage('bot', 'Sorry, I encountered an error while processing your reflection. Please try again.');
       console.error('Error submitting reflection:', error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleComplete = async () => {
-    setSaveStatus(null);
-    console.log("About to process completion");
+  const handleComplete = () => {
+    const lastBotMessage = [...messages].reverse().find(msg => msg.sender === 'bot' && msg.analysisData);
 
-    try {
-      // Find the latest bot response that contains analysis data
-      const lastBotMessage = [...messages].reverse().find(msg =>
-        msg.sender === 'bot' &&
-        msg.analysisData // Check if analysis data exists
-      );
-
-      console.log('Found last bot message:', lastBotMessage);
-      if (!lastBotMessage?.analysisData) {
-        throw new Error('No analysis data found in bot messages');
-      }
-
-      const { moods, summary, suggestedTodos } = lastBotMessage.analysisData;
-
-      const newAnalysis: AnalysisResult = {
-        summary: summary || 'No summary available.',
-        moods: moods || [],
-        suggestedTodos: suggestedTodos || [],
-
-      };
-
-
-
-      setAnalysisResult(newAnalysis);
+    if (lastBotMessage?.analysisData) {
+      setAnalysisResult(lastBotMessage.analysisData);
       setIsCompleted(true);
-    } catch (error) {
-      console.error('Error finishing reflection:', error);
+    } else {
       setSaveStatus({
         success: false,
-        message: 'Failed to get the final analysis. Please try again.'
+        message: 'Please interact more before completing the reflection.'
       });
+      setTimeout(() => setSaveStatus(null), 3000);
     }
   };
-
 
   const handleNewChat = () => {
     setIsCompleted(false);
@@ -173,239 +123,325 @@ function App() {
     setAnalysisResult(null);
   };
 
-  const getPlaceholder = () => {
-    return reflectionType === 'morning'
-      ? 'Share your thoughts, goals, and intentions for today...'
-      : 'Reflect on your day, achievements, and things you\'re grateful for...';
-  };
-
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
-    <div className="app">
-      <div className="chat-container with-sidebar">
-        {/* Sidebar Toggle */}
-        <div className="sidebar-toggle">
-          <div className="type-selector">
-            <span
-              className={`type-option ${reflectionType === 'morning' ? 'active' : ''}`}
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-sky-100 flex overflow-hidden">
+      {/* Sidebar navigation */}
+      <aside className="w-80 bg-white border-r border-slate-200 flex flex-col hidden lg:flex">
+        <div className="p-6 border-b border-slate-100">
+          <div className="flex items-center gap-2 mb-8">
+            <div className="w-10 h-10 bg-sky-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-sky-200">
+              <HiSparkles size={24} />
+            </div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-800">E-Bot</h1>
+          </div>
+
+          <nav className="space-y-2">
+            <button
               onClick={() => setReflectionType('morning')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${reflectionType === 'morning'
+                ? 'bg-sky-50 text-sky-600 font-semibold'
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                }`}
             >
-              ☀️ Morning
-            </span>
-            <span
-              className={`type-option ${reflectionType === 'evening' ? 'active' : ''}`}
+              <HiSun size={20} className={reflectionType === 'morning' ? 'text-sky-500' : ''} />
+              Morning Reflection
+            </button>
+            <button
               onClick={() => setReflectionType('evening')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${reflectionType === 'evening'
+                ? 'bg-indigo-50 text-indigo-600 font-semibold'
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                }`}
             >
-              🌙 Evening
-            </span>
+              <HiMoon size={20} className={reflectionType === 'evening' ? 'text-indigo-500' : ''} />
+              Evening Reflection
+            </button>
+          </nav>
+        </div>
+
+        <div className="flex-1 p-6 overflow-y-auto">
+          {isCompleted && analysisResult && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Key Topics</h3>
+                <div className="flex flex-wrap gap-2">
+                  {analysisResult.keywords?.map((keyword, i) => (
+                    <span key={i} className="px-3 py-1 bg-white border border-slate-200 rounded-full text-sm text-slate-600 shadow-sm">
+                      {keyword}
+                    </span>
+                  )) || <span className="text-sm text-slate-400 italic">No keywords detected yet</span>}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Summary</h3>
+                <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  {analysisResult.summary}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </div>
+
+        <div className="p-6 border-t border-slate-100 mt-auto">
+          <button
+            onClick={handleNewChat}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-600 font-medium hover:bg-slate-50 transition-colors shadow-sm"
+          >
+            <HiPlus size={18} />
+            New Reflection
+          </button>
+        </div>
+      </aside>
+
+      {/* Main content area */}
+      <main className="flex-1 flex flex-col h-full bg-white relative">
+        {/* Header */}
+        <header className="h-20 border-b border-slate-100 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+          <div className="flex items-center gap-4">
+            <div className="lg:hidden w-10 h-10 bg-sky-500 rounded-xl flex items-center justify-center text-white shadow-lg">
+              <HiSparkles size={20} />
+            </div>
+            <div>
+              <h2 className="font-bold text-slate-800 text-lg">
+                {reflectionType === 'morning' ? 'Morning Journal' : 'Evening Review'}
+              </h2>
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                <span>AI Assistant Active</span>
+              </div>
+            </div>
           </div>
 
           {!isCompleted && messages.length > 0 && (
-            <div className="complete-button-container">
-              <button
-                onClick={handleComplete}
-                className="complete-button"
-                disabled={isSubmitting}
+            <button
+              onClick={handleComplete}
+              disabled={isSubmitting}
+              className="flex items-center gap-2 px-6 py-2.5 bg-sky-600 text-white rounded-full font-semibold text-sm hover:bg-sky-700 transition-all shadow-md shadow-sky-100 active:scale-95 disabled:opacity-50"
+            >
+              <HiCheck size={18} />
+              Finish Reflection
+            </button>
+          )}
+        </header>
+
+        {/* Chat window */}
+        <div className="flex-1 overflow-y-auto px-4 py-8 lg:px-12">
+          <div className="max-w-3xl mx-auto space-y-8">
+            <AnimatePresence initial={false}>
+              {messages.length === 0 ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex flex-col items-center justify-center py-20 text-center space-y-4"
+                >
+                  <div className="w-20 h-20 bg-sky-50 rounded-full flex items-center justify-center text-sky-500 mb-4">
+                    <HiChatAlt2 size={40} />
+                  </div>
+                  <h2 className="text-2xl font-bold text-slate-800">Ready for your {reflectionType} reflection?</h2>
+                  <p className="text-slate-500 max-w-sm">
+                    {reflectionType === 'morning'
+                      ? "Start your day with intention. What are you grateful for and what do you hope to achieve today?"
+                      : "Unwind and reflect on your day. What went well and what did you learn today?"}
+                  </p>
+                </motion.div>
+              ) : (
+                messages.map((msg) => (
+                  <motion.div
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`max-w-[85%] lg:max-w-[75%] space-y-1 ${msg.sender === 'user' ? 'items-end' : 'items-start'} flex flex-col`}>
+                      <div
+                        className={`rounded-2xl px-5 py-3.5 text-sm lg:text-base leading-relaxed break-words shadow-sm ${msg.sender === 'user'
+                          ? 'bg-sky-600 text-white rounded-tr-none'
+                          : 'bg-slate-100 text-slate-800 rounded-tl-none border border-slate-200'
+                          }`}
+                      >
+                        <div className="prose prose-sm max-w-none">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              p: ({ ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                              ul: ({ ...props }) => <ul className="list-disc ml-4 mb-2" {...props} />,
+                              ol: ({ ...props }) => <ol className="list-decimal ml-4 mb-2" {...props} />,
+                              h1: ({ ...props }) => <h1 className="text-xl font-bold my-2" {...props} />,
+                              h2: ({ ...props }) => <h2 className="text-lg font-bold my-2" {...props} />,
+                              h3: ({ ...props }) => <h3 className="text-md font-bold my-1" {...props} />,
+                            }}
+                          >
+                            {msg.content}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-medium px-1">
+                        {formatTime(msg.timestamp)}
+                      </span>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </AnimatePresence>
+
+            {isSubmitting && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex justify-start"
               >
-                <CheckIcon /> Complete Reflection
+                <div className="bg-slate-100 border border-slate-200 rounded-2xl p-4 flex gap-1.5 shadow-sm">
+                  <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                  <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                  <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" />
+                </div>
+              </motion.div>
+            )}
+            <div ref={chatEndRef} className="h-4" />
+          </div>
+        </div>
+
+        {/* Input area */}
+        <div className="fixed lg:absolute bottom-0 left-0 lg:left-0 right-0 p-6 bg-gradient-to-t from-white via-white/100 to-transparent pointer-events-none">
+          <div className="max-w-3xl mx-auto w-full pointer-events-auto">
+            {saveStatus && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`mb-4 p-3 rounded-xl text-center text-sm font-medium shadow-lg backdrop-blur-md ${saveStatus.success ? 'bg-emerald-500/90 text-white' : 'bg-rose-500/90 text-white'
+                  }`}
+              >
+                {saveStatus.message}
+              </motion.div>
+            )}
+
+            <form
+              onSubmit={handleSubmit}
+              className="relative group flex items-center gap-2"
+            >
+              <div className="relative flex-1">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder={
+                    isCompleted
+                      ? "Reflection finished. Start new to continue."
+                      : reflectionType === 'morning'
+                        ? "What's on your mind this morning?"
+                        : "How was your day?"
+                  }
+                  disabled={isSubmitting || isCompleted}
+                  rows={1}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmit(e);
+                    }
+                  }}
+                  className="w-full bg-white border border-slate-200 rounded-2xl pl-4 pr-14 py-4 focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 outline-none transition-all resize-none shadow-xl shadow-slate-200/50 text-slate-700"
+                />
+                <button
+                  type="submit"
+                  disabled={isSubmitting || isCompleted || !input.trim()}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-sky-600 text-white rounded-xl flex items-center justify-center hover:bg-sky-700 transition-all disabled:opacity-40 disabled:hover:bg-sky-600 shadow-md shadow-sky-200 active:scale-90"
+                >
+                  <HiPaperAirplane className="rotate-90" size={18} />
+                </button>
+              </div>
+            </form>
+            <p className="text-[10px] text-center text-slate-400 mt-3 font-medium uppercase tracking-widest">
+              Your Daily AI Companion
+            </p>
+          </div>
+        </div>
+      </main>
+
+      {/* Completion Sidebar for mobile/tablet */}
+      <AnimatePresence>
+        {isCompleted && analysisResult && (
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            className="fixed inset-0 lg:hidden bg-white z-50 flex flex-col"
+          >
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-800">Reflection Summary</h2>
+              <button
+                onClick={() => setIsCompleted(false)}
+                className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center"
+              >
+                <HiPlus className="rotate-45" size={24} />
               </button>
             </div>
-          )}
-        </div>
-
-        {/* Main Chat Area */}
-        <div className="main-content">
-          {!isCompleted ? (
-            <>
-              <div className="chat-header">
-                <h2>{reflectionType === 'morning' ? '☀️ Morning Reflection' : '🌙 Evening Reflection'}</h2>
-              </div>
-              {saveStatus && (
-                <div ref={saveStatusRef} className={`status-message ${saveStatus.success ? 'success' : 'error'}`}>
-                  {saveStatus.message}
+            <div className="flex-1 overflow-y-auto p-6 space-y-8">
+              <div className="space-y-3 text-center py-6">
+                <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 mx-auto mb-4">
+                  <HiCheck size={32} />
                 </div>
-              )}
-              <div className="chat-window">
-                {messages.length === 0 ? (
-                  <div className="welcome-message">
-                    <h2>Welcome to your {reflectionType} reflection</h2>
-                    <p>Start by sharing your thoughts, and I'll help you reflect on your {reflectionType === 'morning' ? 'day ahead' : 'day'}.</p>
-                  </div>
-                ) : (
-                  messages.map((msg) => (
-                    <div key={msg.id} className={`message-container ${msg.sender}`}>
-                      <div className={`message ${msg.sender}`}>
-                        <div className="message-content">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                        </div>
-                        <div className="message-time">{formatTime(msg.timestamp)}</div>
-                      </div>
-                    </div>
-                  ))
-                )}
-                {isSubmitting && (
-                  <div className="message-container bot">
-                    <div className="typing-indicator">
-                      <span></span>
-                      <span></span>
-                      <span></span>
-                    </div>
-                  </div>
-                )}
-                <div ref={chatEndRef} />
+                <h3 className="text-2xl font-bold text-slate-900">Well Done!</h3>
+                <p className="text-slate-500">You've successfully completed your {reflectionType} reflection.</p>
               </div>
 
-              <form onSubmit={handleSubmit} className="chat-input-container">
-                <div className="input-wrapper">
-                  <textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder={getPlaceholder()}
-                    rows={1}
-                    className="chat-input"
-                    disabled={isSubmitting}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSubmit(e);
-                      }
-                    }}
-                  />
-                  <div className="chat-buttons">
-                    <button
-                      type="submit"
-                      className="send-button"
-                      disabled={isSubmitting || !input.trim()}
-                      aria-label="Send message"
-                    >
-                      <SendIcon />
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </>
-          ) : (
-            <div className="chat-interface">
-              <div className="chat-header">
-                <h2>{reflectionType === 'morning' ? '☀️ Morning Reflection' : '🌙 Evening Reflection'}</h2>
-              </div>
-              <div className="chat-window">
-                {messages.map((msg) => (
-                  <div key={msg.id} className={`message-container ${msg.sender}`}>
-                    <div className={`message ${msg.sender}`}>
-                      <div className="message-content">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                      </div>
-                      <div className="message-time">{formatTime(msg.timestamp)}</div>
-                    </div>
-                  </div>
-                ))}
-                <div ref={chatEndRef} />
-              </div>
-
-              <form onSubmit={handleSubmit} className="chat-input-container">
-                <div className="input-wrapper">
-                  <textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="Continue your reflection..."
-                    rows={1}
-                    className="chat-input"
-                    disabled={isSubmitting}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSubmit(e);
-                      }
-                    }}
-                  />
-                  <div className="chat-buttons">
-                    <button
-                      type="submit"
-                      className="send-button"
-                      disabled={isSubmitting || !input.trim()}
-                      aria-label="Send message"
-                    >
-                      <SendIcon />
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Reflection Results Sidebar */}
-      <div className={`reflection-sidebar ${isCompleted ? 'visible' : ''}`}>
-        {isCompleted && analysisResult && (
-          <div className="summary-view">
-            <div className="summary-card">
-              <h2>Your {reflectionType === 'morning' ? 'Morning' : 'Evening'} Reflection</h2>
-
-              <div className="mood-display">
-                <h3>Your Moods</h3>
-                <div className="mood-chips">
-                  {analysisResult.moods && analysisResult.moods.length > 0 ? (
-                    analysisResult.moods.map((mood: string, index: number) => (
-                      <span key={index} className="mood-chip">
-                        {mood}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="mood-chip">Neutral</span>
-                  )}
+              <div className="space-y-4">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Analysis Highlights</h4>
+                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 shadow-inner">
+                  <p className="text-slate-700 leading-relaxed italic">
+                    "{analysisResult.summary}"
+                  </p>
                 </div>
               </div>
 
-              <div className="summary-section">
-                <h3>Summary</h3>
-                <div className="summary-content">
-                  {analysisResult.summary || 'No summary available.'}
+              <div className="space-y-4">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Key Topics</h4>
+                <div className="flex flex-wrap gap-2">
+                  {analysisResult.keywords?.map((keyword, i) => (
+                    <span key={i} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600">
+                      {keyword}
+                    </span>
+                  ))}
                 </div>
               </div>
 
               {analysisResult.suggestedTodos && analysisResult.suggestedTodos.length > 0 && (
-                <div className="goals-section">
-                  <h3>Your Goals</h3>
-                  <ul className="goals-list">
+                <div className="space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Action Items</h4>
+                  <div className="space-y-3">
                     {analysisResult.suggestedTodos.map((todo) => (
-                      <li key={todo.id} className={`goal-item ${todo.completed ? 'completed' : ''}`}>
-                        <label className="goal-checkbox-container">
-                          <input
-                            type="checkbox"
-                            checked={todo.completed}
-                            onChange={() => {
-                              setAnalysisResult(prev => ({
-                                ...prev!,
-                                goals: prev!.suggestedTodos?.map(g =>
-                                  g.id === todo.id ? { ...g, completed: !g.completed } : g
-                                )
-                              }));
-                            }}
-                            className="goal-checkbox"
-                          />
-                          <span className="checkmark"></span>
-                        </label>
-                        <span className="goal-text">{todo.title}</span>
-                      </li>
+                      <div key={todo.id} className="flex items-start gap-3 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                        <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${todo.priority === 'high' ? 'bg-rose-500' : todo.priority === 'medium' ? 'bg-amber-500' : 'bg-sky-500'
+                          }`} />
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">{todo.title}</p>
+                          <p className="text-xs text-slate-500 mt-1">{todo.description}</p>
+                        </div>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               )}
-
-              <div className="completion-actions">
-                <button onClick={handleNewChat} className="new-chat-button">
-                  Start New Reflection
-                </button>
-              </div>
             </div>
-          </div>
+            <div className="p-6 border-t border-slate-100">
+              <button
+                onClick={handleNewChat}
+                className="w-full py-4 bg-sky-600 text-white rounded-2xl font-bold shadow-lg shadow-sky-200 active:scale-[0.98] transition-all"
+              >
+                Start New Session
+              </button>
+            </div>
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 // Ensure GOOGLE_API_KEY is set in your environment.
 export const model = new ChatGoogleGenerativeAI({
     model: "gemini-2.5-flash-lite",
-    apiKey: "AIzaSyC61P2zJh0VFKQBHg44oYEGR0b1epYnsu0",
+    apiKey: "AIzaSyCuKE8SXxLgHKYMUvRThiJ0rHa9yoIKjP8",
     temperature: 0
 
 });

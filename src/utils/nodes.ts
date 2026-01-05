@@ -2,6 +2,7 @@ import { AgentStateType } from './state';
 import { ReflectionAnalyzer } from './tools';
 import { START, END } from '@langchain/langgraph';
 import { Todo } from '../types';
+import { HumanMessage, AIMessage } from '@langchain/core/messages';
 
 // Node for processing reflection entries
 export const reflectionProcessor = async (state: AgentStateType): Promise<Partial<AgentStateType>> => {
@@ -18,8 +19,7 @@ export const reflectionProcessor = async (state: AgentStateType): Promise<Partia
 
   try {
     // Extract todos from the reflection
-    const todosData = await ReflectionAnalyzer.extractTodos(content);
-    const todos = JSON.parse(todosData) as string[];
+    const todos = await ReflectionAnalyzer.extractTodos(content);
 
     const suggestedTodos: Todo[] = todos.map(todo => ({
       id: crypto.randomUUID(),
@@ -34,7 +34,8 @@ export const reflectionProcessor = async (state: AgentStateType): Promise<Partia
 
     return {
       suggestedTodos: suggestedTodos,
-      currentStep: 'mood_analysis'
+      messages: [new HumanMessage(content)],
+      currentStep: 'keyword_analysis'
     };
   } catch (error) {
     return {
@@ -45,33 +46,35 @@ export const reflectionProcessor = async (state: AgentStateType): Promise<Partia
 };
 
 // Node for mood analysis
-export const moodAnalyzer = (state: AgentStateType): Partial<AgentStateType> => {
-  console.log('Analyzing mood for reflection:', state.currentReflection?.id);
+export const keywordAnalyzer = async (state: AgentStateType): Promise<Partial<AgentStateType>> => {
+  console.log('Analyzing keywords for reflection:', state.currentReflection?.id);
 
   if (!state.currentReflection?.content) {
     return {
-      error: 'No reflection content available for mood analysis',
+      error: 'No reflection content available for keyword analysis',
       currentStep: 'error'
     };
   }
 
   try {
-    const moodAnalysis = ReflectionAnalyzer.analyzeMood(state.currentReflection.content);
+    const keywordAnalysis = await ReflectionAnalyzer.analyzeKeyWords(state.currentReflection.content);
 
     return {
-      moodAnalysis,
+      keywordAnalysis,
       currentStep: 'summary_generation'
     };
   } catch (error) {
     return {
-      error: `Failed to analyze mood: ${error}`,
+      error: `Failed to analyze keywords: ${error}`,
       currentStep: 'error'
     };
   }
 };
 
+
+
 // Node for generating summary
-export const summaryGenerator = (state: AgentStateType): Partial<AgentStateType> => {
+export const summaryGenerator = async (state: AgentStateType): Promise<Partial<AgentStateType>> => {
   console.log('Generating summary for reflection:', state.currentReflection?.id);
 
   if (!state.currentReflection?.content) {
@@ -82,11 +85,11 @@ export const summaryGenerator = (state: AgentStateType): Partial<AgentStateType>
   }
 
   try {
-    const summary = ReflectionAnalyzer.generateSummary(state.currentReflection.content);
+    const summary = await ReflectionAnalyzer.generateSummary(state.messages);
 
     return {
       summary,
-      currentStep: 'goal_alignment'
+      currentStep: 'feedback_generation'
     };
   } catch (error) {
     return {
@@ -96,42 +99,15 @@ export const summaryGenerator = (state: AgentStateType): Partial<AgentStateType>
   }
 };
 
-// Node for analyzing goal alignment
-export const goalAlignmentAnalyzer = (state: AgentStateType): Partial<AgentStateType> => {
-  console.log('Analyzing goal alignment for user:', state.userId);
 
-  if (!state.currentReflection?.content) {
-    return {
-      error: 'No reflection content available for goal alignment',
-      currentStep: 'error'
-    };
-  }
-
-  try {
-    const alignment = ReflectionAnalyzer.analyzeGoalAlignment(
-      state.currentReflection.content,
-      state.userGoals
-    );
-
-    return {
-      goalAlignment: alignment,
-      currentStep: 'feedback_generation'
-    };
-  } catch (error) {
-    return {
-      error: `Failed to analyze goal alignment: ${error}`,
-      currentStep: 'error'
-    };
-  }
-};
 
 // Node for generating feedback
 export const feedbackGenerator = async (state: AgentStateType): Promise<Partial<AgentStateType>> => {
   console.log('Generating feedback for reflection:', state.currentReflection?.id);
 
-  if (!state.currentReflection?.content || !state.moodAnalysis) {
+  if (!state.currentReflection?.content) {
     return {
-      error: 'Missing reflection content or mood analysis for feedback generation',
+      error: 'Missing reflection content or keyword analysis for feedback generation',
       currentStep: 'error'
     };
   }
@@ -139,9 +115,8 @@ export const feedbackGenerator = async (state: AgentStateType): Promise<Partial<
   try {
     const feedback = await ReflectionAnalyzer.generateFeedback(
       state.currentReflection.content,
-      state.moodAnalysis,
-      state.userGoals,
-      state.currentReflection.type
+      state.currentReflection.type,
+      state.messages
     );
     // If the reflection suggests a need for external information, route to the web search node.
     if (feedback.toLowerCase().includes('search for') || feedback.toLowerCase().includes('look up')) {
@@ -173,13 +148,14 @@ export const completionProcessor = (state: AgentStateType): Partial<AgentStateTy
   // Update the reflection with analysis results
   const updatedReflection = state.currentReflection ? {
     ...state.currentReflection,
-    mood: state.moodAnalysis,
+    keywords: state.keywordAnalysis,
     summary: state.summary,
     feedback: state.feedback
   } : null;
 
   return {
     currentReflection: updatedReflection,
+    messages: [new AIMessage(state.feedback)],
     analysisComplete: true,
     currentStep: 'completed'
   };
@@ -200,12 +176,10 @@ export const reflectionRouter = (state: AgentStateType) => {
   switch (state.currentStep) {
     case 'initial':
       return 'reflectionProcessor';
-    case 'mood_analysis':
-      return 'moodAnalyzer';
+    case 'keyword_analysis':
+      return 'keywordAnalyzer';
     case 'summary_generation':
       return 'summaryGenerator';
-    case 'goal_alignment':
-      return 'goalAlignmentAnalyzer';
     case 'feedback_generation':
       return 'feedbackGenerator';
     case 'completion':
