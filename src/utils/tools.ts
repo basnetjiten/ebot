@@ -67,13 +67,25 @@ User text:
       .join('\n');
 
     const prompt = `
-You are a summary assistant.
+You are a reflection assistant.
 
-Summarize the following conversation into a single concise sentence (max 20 words).
-Focus on the main topics and outcomes.
+The user is asking for a short reflection summary that can be used for either
+a morning intention or an evening reflection.
+
+Your task:
+- Identify the main topics discussed
+- Capture key outcomes, realizations, or concerns
+- If suitable, gently frame it as:
+  - an intention or focus for the day (morning), OR
+  - a takeaway or learning (evening)
+- Keep it concise
+- Use calm, supportive, and reflective language
+- Do NOT add advice unless it naturally fits the reflection tone
 
 Conversation:
 ${history}
+
+Return only the reflection summary.
 `.trim();
 
     try {
@@ -84,6 +96,7 @@ ${history}
       return 'Summary unavailable';
     }
   }
+
 
   static async generateFeedback(
     content: string,

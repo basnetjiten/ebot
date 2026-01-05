@@ -234,7 +234,7 @@ function App() {
         </header>
 
         {/* Chat window */}
-        <div className="flex-1 overflow-y-auto px-4 py-8 lg:px-12">
+        <div className="flex-1 overflow-y-auto px-4 py-8 pb-40 lg:px-12">
           <div className="max-w-3xl mx-auto space-y-8">
             <AnimatePresence initial={false}>
               {messages.length === 0 ? (
@@ -307,7 +307,7 @@ function App() {
                 </div>
               </motion.div>
             )}
-            <div ref={chatEndRef} className="h-4" />
+            <div ref={chatEndRef} className="h-20" />
           </div>
         </div>
 
