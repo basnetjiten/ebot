@@ -75,6 +75,12 @@ export const StateAnnotation = Annotation.Root({
     default: () => false,
   }),
 
+  // Flag to control whether to run full analysis (keywords, summary, todos)
+  isFinishing: Annotation<boolean>({
+    reducer: (left: boolean, right: boolean) => right,
+    default: () => false,
+  }),
+
   // Error handling
   error: Annotation<string | null>({
     reducer: (left: string | null, right: string | null) => right,

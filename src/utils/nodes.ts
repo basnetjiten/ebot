@@ -17,9 +17,17 @@ export const reflectionProcessor = async (state: AgentStateType): Promise<Partia
 
   const content = state.currentReflection.content;
 
+  // If not finishing, skip todo extraction and move to feedback
+  if (!state.isFinishing) {
+    return {
+      messages: [new HumanMessage(content)],
+      currentStep: 'initial'
+    };
+  }
+
   try {
     // Extract todos from the reflection
-    const todos = await ReflectionAnalyzer.extractTodos(content);
+    const todos = await ReflectionAnalyzer.extractTodos(state.messages);
 
     const suggestedTodos: Todo[] = todos.map(todo => ({
       id: crypto.randomUUID(),
@@ -57,7 +65,7 @@ export const keywordAnalyzer = async (state: AgentStateType): Promise<Partial<Ag
   }
 
   try {
-    const keywordAnalysis = await ReflectionAnalyzer.analyzeKeyWords(state.currentReflection.content);
+    const keywordAnalysis = await ReflectionAnalyzer.analyzeKeyWords(state.messages);
 
     return {
       keywordAnalysis,
@@ -101,7 +109,7 @@ export const summaryGenerator = async (state: AgentStateType): Promise<Partial<A
 
 // Node for generating feedback
 export const feedbackGenerator = async (state: AgentStateType): Promise<Partial<AgentStateType>> => {
-  console.log('Generating feedback for reflection:', state.currentReflection?.id);
+  console.log('Generating feedback for reflection:', state.currentReflection?.id, 'isFinishing:', state.isFinishing);
 
   if (!state.currentReflection?.content) {
     return {
@@ -126,7 +134,15 @@ export const feedbackGenerator = async (state: AgentStateType): Promise<Partial<
       };
     }
 
-    // Otherwise, proceed to completion.
+    // If not finishing, skip completion and end the workflow
+    if (!state.isFinishing) {
+      return {
+        feedback,
+        currentStep: 'feedback_generation'
+      };
+    }
+
+    // Otherwise, proceed to completion for full analysis
     return {
       feedback,
       currentStep: 'completion'
@@ -161,7 +177,7 @@ export const completionProcessor = (state: AgentStateType): Partial<AgentStateTy
 
 // Decision node for routing the reflection analysis workflow
 export const decisionRouter = (state: AgentStateType) => {
-  console.log('Routing reflection analysis, current step:', state.currentStep);
+  console.log('Routing reflection analysis, current step:', state.currentStep, 'isFinishing:', state.isFinishing);
 
   if (state.needsWebSearch) {
     return 'webSearch';
@@ -171,6 +187,19 @@ export const decisionRouter = (state: AgentStateType) => {
     return END;
   }
 
+  // If not finishing, skip analysis and go straight to feedback
+  if (!state.isFinishing) {
+    switch (state.currentStep) {
+      case 'initial':
+        return 'feedbackGenerator';
+      case 'feedback_generation':
+        return END;
+      default:
+        return END;
+    }
+  }
+
+  // Full analysis workflow when finishing
   switch (state.currentStep) {
     case 'initial':
       return 'reflectionProcessor';

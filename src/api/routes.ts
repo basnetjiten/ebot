@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { compiledAgent } from '../agent';
-import { MobileAPIResponse } from '../types';
+import { MobileAPIResponse, ReflectionEntry } from '../types';
 import { database } from '../storage/database';
 
 // Helper function to create API response
@@ -14,7 +14,7 @@ const createResponse = <T>(data?: T, error?: string): MobileAPIResponse<T> => ({
 // Submit a reflection entry for analysis
 export const submitReflection = async (req: Request, res: Response) => {
     try {
-        const { userId, type, content, messages, lastReflectionId } = req.body;
+        const { userId, type, content, messages, lastReflectionId, isFinishing } = req.body;
 
         if (!userId || !type || !content) {
             return res.status(400).json(
@@ -42,23 +42,51 @@ export const submitReflection = async (req: Request, res: Response) => {
             } as any);
         }
 
-        // Create reflection entry
-        const reflectionData = {
-            userId,
-            type,
-            timestamp: new Date(),
-            content,
-        };
+        let reflection: ReflectionEntry;
+        let isNewReflection = true;
 
-        // Store reflection
-        const reflection = await database.createReflection(reflectionData);
+        // Try to reuse existing reflection if provided
+        if (lastReflectionId) {
+            const existing = await database.getReflection(lastReflectionId);
+            if (existing) {
+                reflection = existing;
+                isNewReflection = false;
+                console.log(`Reusing existing reflection: ${lastReflectionId}`);
+            } else {
+                // Fallback: create new if ID not found
+                console.log(`Reflection ${lastReflectionId} not found, creating new...`);
+                reflection = await database.createReflection({
+                    userId,
+                    type,
+                    timestamp: new Date(),
+                    content,
+                });
+            }
+        } else {
+            // Create new reflection
+            console.log('Creating new reflection...');
+            reflection = await database.createReflection({
+                userId,
+                type,
+                timestamp: new Date(),
+                content,
+            });
+        }
+
+        // Prepare reflection object for agent (inject current message as content)
+        // The agent needs the current user message in 'content' field to process it
+        const reflectionForAgent = {
+            ...reflection,
+            content: content
+        };
 
         // Run the reflection analysis agent
         const result = await compiledAgent.invoke({
             userId,
-            currentReflection: reflection,
+            currentReflection: reflectionForAgent,
             currentStep: 'initial',
             analysisComplete: false,
+            isFinishing: !!isFinishing,
             messages: messages || [],
             suggestedTodos: [],
             createdTodos: [],
@@ -69,9 +97,24 @@ export const submitReflection = async (req: Request, res: Response) => {
         });
 
         // Update reflection with analysis results
-        const updatedReflection = result.currentReflection;
-        if (updatedReflection) {
-            await database.updateReflection(reflection.id, updatedReflection);
+        const updatedReflectionArgs = result.currentReflection;
+        if (updatedReflectionArgs) {
+            // If reusing existing reflection, preserve original content
+            if (!isNewReflection) {
+                const updates = { ...updatedReflectionArgs } as any;
+                delete updates.id;
+                delete updates.userId;
+                // Delete content to prevent overwriting the session start content with chat message
+                delete updates.content;
+
+                await database.updateReflection(reflection.id, updates);
+
+                // Merge back for response
+                updatedReflectionArgs.content = reflection.content;
+            } else {
+                // For new reflection, update everything
+                await database.updateReflection(reflection.id, updatedReflectionArgs);
+            }
         }
 
         // Store suggested todos
@@ -87,8 +130,8 @@ export const submitReflection = async (req: Request, res: Response) => {
         }
 
         res.json(createResponse({
-            content: updatedReflection?.content,
-            reflection: updatedReflection,
+            content: reflection.content, // Return original content (or whatever is in DB)
+            reflection: isNewReflection ? updatedReflectionArgs : reflection,
             analysis: {
                 keywords: result.keywordAnalysis,
                 summary: result.summary,

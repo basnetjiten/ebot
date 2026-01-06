@@ -22,17 +22,22 @@ export class ReflectionAnalyzer {
     return cleaned;
   }
 
-  static async analyzeKeyWords(content: string): Promise<Array<string>> {
+  static async analyzeKeyWords(messages: BaseMessage[]): Promise<Array<string>> {
+    // Build conversation history
+    const conversationText = messages
+      .map(msg => `${msg.type === 'human' ? 'User' : 'Assistant'}: ${msg.content}`)
+      .join('\n');
+
     const prompt = `
 You are a keyword extraction assistant.
 
-Extract meaningful keywords from the user's text.
+Extract meaningful keywords from the ENTIRE conversation below.
 
 Rules:
-- Focus on topics, actions, and concepts
+- Focus on topics, actions, and concepts discussed throughout the conversation
 - Ignore emotions and filler words
 - Prefer nouns and verb phrases
-- Return 2-3 keywords
+- Return 3-5 keywords that capture the main themes
 - No explanations
 
 Return ONLY valid JSON in this format:
@@ -40,8 +45,8 @@ Return ONLY valid JSON in this format:
   "keywords": ["keyword1", "keyword2", "keyword3"]
 }
 
-User text:
-"""${content}"""
+Conversation:
+"""${conversationText}"""
 `.trim();
 
     try {
@@ -116,7 +121,7 @@ Return only the reflection summary.
 ## Instructions:
 - Keep responses brief and to the point
 - Use bullet points for multiple suggestions
-- Limit to 4-5 key points max
+- Limit to 3-4 key points max
 - Be direct and actionable
 
 
@@ -154,7 +159,7 @@ If the user asks for advice, suggestions, or "how to" guidance — even if it fo
 - Acknowledge briefly
 - Give actionable, relevant suggestions
 - Validate emotion in one short phrase
-- Ask if they can help with anything else
+- Ask if you can help with anything else
 
 Now respond appropriately to the user's last message.`;
 
@@ -170,21 +175,26 @@ Now respond appropriately to the user's last message.`;
 
 
 
-  static async extractTodos(content: string): Promise<string[]> {
+  static async extractTodos(messages: BaseMessage[]): Promise<string[]> {
+    // Build conversation history
+    const conversationText = messages
+      .map(msg => `${msg.type === 'human' ? 'User' : 'Assistant'}: ${msg.content}`)
+      .join('\n');
+
     const prompt = `
 You are a productivity assistant.
 
-Based on the user's reflection below, extract EXACTLY 3 actionable TODO items.
+Based on the ENTIRE conversation below, extract EXACTLY 3 actionable TODO items.
 
 Rules:
 - Each TODO must be a short, clear action (max 12 words).
-- Focus on concrete next steps.
+- Focus on concrete next steps mentioned throughout the conversation.
 - Do NOT include explanations.
 - Do NOT include numbering.
 - Return the result as a JSON array of strings ONLY.
 
-User reflection:
-"""${content}"""
+Conversation:
+"""${conversationText}"""
 
 Output format:
 ["todo one", "todo two", "todo three"]
@@ -206,30 +216,5 @@ Output format:
 
 }
 
-// Tool definitions for LangGraph
-export const availableTools = [
-  {
-    name: 'analyze_keywords',
-    description: 'Extracts meaningful keywords from reflection text',
-    func: (content: string) => ReflectionAnalyzer.analyzeKeyWords(content),
-  },
-  {
-    name: 'generate_summary',
-    description: 'Creates a concise summary of reflection content',
-    func: (messages: BaseMessage[]) => ReflectionAnalyzer.generateSummary(messages),
-  },
-  {
-    name: 'generate_feedback',
-    description: 'Generates personalized feedback based on reflection and keywords',
-    func: async (content: string, type: 'morning' | 'evening', messages: BaseMessage[] = []) =>
-      await ReflectionAnalyzer.generateFeedback(content, type, messages),
-  },
-  {
-    name: 'extract_todos',
-    description: 'Extracts actionable items from reflection text',
-    func: (content: string) => ReflectionAnalyzer.extractTodos(content),
-  },
-
-];
 
 

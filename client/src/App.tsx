@@ -8,6 +8,8 @@ import ReflectionPage from './ReflectionPage';
 import LoginPage from './LoginPage';
 
 function App() {
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -28,6 +30,7 @@ function App() {
   }, [messages, isSubmitting]);
 
   const fetchUserData = async (id: string, skipMessages = false) => {
+    setIsLoadingData(true);
     try {
       const response = await axios.get(`http://localhost:3000/api/users/${id}/summary`);
       const { latestReflection, history, keywords, analysisData } = response.data.data;
@@ -87,12 +90,16 @@ function App() {
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
+    } finally {
+      setIsLoadingData(false);
     }
   };
 
   useEffect(() => {
     if (userId) {
       fetchUserData(userId);
+    } else {
+      setIsLoadingData(false);
     }
   }, [userId]);
 
@@ -122,27 +129,15 @@ function App() {
         type: reflectionType,
         content: userContent,
         lastReflectionId,
-        messages: messages.map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.content }))
+        messages: messages.map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.content })),
+        isFinishing: false
       });
 
       const { analysis, reflection } = response.data.data;
       setLastReflectionId(reflection.id);
-      addMessage('bot', analysis.feedback, {
-        summary: analysis.summary,
-        keywords: analysis.keywords,
-        suggestedTodos: analysis.suggestedTodos
-      });
-      setAnalysisResult(analysis);
 
-      // Update todo status
-      if (analysis.suggestedTodos) {
-        const completed = (analysis.suggestedTodos as SuggestedTodo[]).filter((t: SuggestedTodo) => t.isCompleted).length;
-        const uncompleted = analysis.suggestedTodos.length - completed;
-        setTodoStatus({ completed, uncompleted });
-      }
-
-      // Refresh history/keywords without wiping current chat
-      fetchUserData(userId, true);
+      // For chat, we only expect feedback, no heavy analysis
+      addMessage('bot', analysis.feedback);
 
     } catch (error) {
       console.error('Submission error:', error);
@@ -152,8 +147,43 @@ function App() {
     }
   };
 
-  const handleComplete = () => {
-    setIsCompleted(true);
+  const handleComplete = async () => {
+    if (!userId || !lastReflectionId) return;
+    setIsSubmitting(true);
+
+    try {
+      // Trigger final analysis with isFinishing: true
+      const response = await axios.post('http://localhost:3000/api/reflections', {
+        userId,
+        type: reflectionType,
+        content: "Reflection complete", // Placeholder content for the finish action
+        lastReflectionId,
+        messages: messages.map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.content })),
+        isFinishing: true
+      });
+
+      const { analysis } = response.data.data;
+
+      // Update state with final analysis
+      setAnalysisResult(analysis);
+      setIsCompleted(true);
+
+      // Update todo status
+      if (analysis.suggestedTodos) {
+        const completed = (analysis.suggestedTodos as SuggestedTodo[]).filter((t: SuggestedTodo) => t.isCompleted).length;
+        const uncompleted = analysis.suggestedTodos.length - completed;
+        setTodoStatus({ completed, uncompleted });
+      }
+
+      // Refresh history/keywords
+      fetchUserData(userId, true);
+
+    } catch (error) {
+      console.error('Completion error:', error);
+      addMessage('bot', 'Sorry, I encountered an error finishing the reflection.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleNewChat = () => {
@@ -240,6 +270,17 @@ function App() {
     }} />;
   }
 
+  if (isLoadingData) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+          <p className="text-slate-400 font-bold tracking-widest text-xs uppercase animate-pulse">Loading Experience...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex bg-slate-50 font-sans h-screen overflow-hidden">
       <Sidebar
@@ -252,7 +293,7 @@ function App() {
         onToggleTodo={handleToggleTodo}
       />
 
-      <main className="flex-1 flex flex-col h-full bg-white relative overflow-hidden">
+      <main className="flex-1 flex flex-col h-full bg-slate-50 relative overflow-hidden">
         <Routes>
           <Route path="/" element={
             <ReflectionPage
