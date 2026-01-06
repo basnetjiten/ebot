@@ -25,7 +25,7 @@ export const reflectionProcessor = async (state: AgentStateType): Promise<Partia
       id: crypto.randomUUID(),
       userId: state.userId,
       title: todo,
-      completed: false,
+      isCompleted: false,
       createdAt: new Date(),
       description: '',
       priority: 'medium',
@@ -72,7 +72,6 @@ export const keywordAnalyzer = async (state: AgentStateType): Promise<Partial<Ag
 };
 
 
-
 // Node for generating summary
 export const summaryGenerator = async (state: AgentStateType): Promise<Partial<AgentStateType>> => {
   console.log('Generating summary for reflection:', state.currentReflection?.id);
@@ -98,7 +97,6 @@ export const summaryGenerator = async (state: AgentStateType): Promise<Partial<A
     };
   }
 };
-
 
 
 // Node for generating feedback
@@ -162,7 +160,7 @@ export const completionProcessor = (state: AgentStateType): Partial<AgentStateTy
 };
 
 // Decision node for routing the reflection analysis workflow
-export const reflectionRouter = (state: AgentStateType) => {
+export const decisionRouter = (state: AgentStateType) => {
   console.log('Routing reflection analysis, current step:', state.currentStep);
 
   if (state.needsWebSearch) {

@@ -7,17 +7,15 @@ export interface ReflectionEntry {
     keywords?: string[] | null;
     summary?: string;
     feedback?: string;
-    completed?: boolean;
+    isCompleted?: boolean;
 }
-
-
 
 export interface Todo {
     id: string;
     userId: string;
     title: string;
     description?: string;
-    completed: boolean;
+    isCompleted: boolean;
     createdAt: Date;
     completedAt?: Date;
     sourceReflectionId?: string;
@@ -41,4 +39,12 @@ export interface MobileAPIResponse<T = any> {
     data?: T;
     error?: string;
     timestamp: Date;
+}
+
+export interface UserKeyword {
+    id: string;
+    userId: string;
+    keyword: string;
+    count: number;
+    lastSeen: Date;
 }

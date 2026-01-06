@@ -1,11 +1,33 @@
-import { ReflectionEntry, Todo, User } from '../types';
+import { MongoClient, Collection, Db, ObjectId } from 'mongodb';
+import { ReflectionEntry, Todo, User, UserKeyword } from '../types';
+import { v4 as uuidv4 } from 'uuid';
+
+export interface IDatabase {
+    createUser(userData: Omit<User, 'id' | 'createdAt'>): Promise<User>;
+    getUser(userId: string): Promise<User | null>;
+    updateUser(userId: string, updates: Partial<User>): Promise<User | null>;
+    createReflection(reflectionData: Omit<ReflectionEntry, 'id'>): Promise<ReflectionEntry>;
+    getReflection(reflectionId: string): Promise<ReflectionEntry | null>;
+    updateReflection(reflectionId: string, updates: Partial<ReflectionEntry>): Promise<ReflectionEntry | null>;
+    getUserReflections(userId: string, limit?: number, offset?: number): Promise<ReflectionEntry[]>;
+    deleteReflection(reflectionId: string): Promise<boolean>;
+    createTodo(todoData: Omit<Todo, 'id' | 'createdAt'>): Promise<Todo>;
+    getTodo(todoId: string): Promise<Todo | null>;
+    updateTodo(todoId: string, updates: Partial<Todo>): Promise<Todo | null>;
+    getUserTodos(userId: string): Promise<Todo[]>;
+    deleteTodo(todoId: string): Promise<boolean>;
+    saveKeywords(userId: string, keywords: string[]): Promise<void>;
+    getTodosByReflectionId(reflectionId: string): Promise<Todo[]>;
+    getUserKeywords(userId: string): Promise<UserKeyword[]>;
+    getLatestReflection(userId: string): Promise<ReflectionEntry | null>;
+}
 
 // In-memory database implementation
-// In production, replace this with actual database (PostgreSQL, MongoDB, etc.)
-export class InMemoryDatabase {
+export class InMemoryDatabase implements IDatabase {
     private users = new Map<string, User>();
     private reflections = new Map<string, ReflectionEntry>();
     private todos = new Map<string, Todo>();
+    private keywords = new Map<string, { keyword: string, count: number, lastSeen: Date }[]>();
 
     // User operations
     async createUser(userData: Omit<User, 'id' | 'createdAt'>): Promise<User> {
@@ -38,9 +60,6 @@ export class InMemoryDatabase {
             ...reflectionData
         };
         this.reflections.set(reflection.id, reflection);
-
-
-
         return reflection;
     }
 
@@ -77,8 +96,6 @@ export class InMemoryDatabase {
         const reflection = this.reflections.get(reflectionId);
         if (!reflection) return false;
 
-
-
         // Remove associated todos
         const associatedTodos = Array.from(this.todos.values())
             .filter(todo => todo.sourceReflectionId === reflectionId);
@@ -110,9 +127,9 @@ export class InMemoryDatabase {
         if (!todo) return null;
 
         const updatedTodo = { ...todo, ...updates };
-        if (updates.completed && !todo.completed) {
+        if (updates.isCompleted && !todo.isCompleted) {
             updatedTodo.completedAt = new Date();
-        } else if (updates.completed === false && todo.completed) {
+        } else if (updates.isCompleted === false && todo.isCompleted) {
             updatedTodo.completedAt = undefined;
         }
 
@@ -130,40 +147,251 @@ export class InMemoryDatabase {
         return this.todos.delete(todoId);
     }
 
+    async saveKeywords(userId: string, keywords: string[]): Promise<void> {
+        let userKeywords = this.keywords.get(userId) || [];
+        for (const kw of keywords) {
+            const existing = userKeywords.find(k => k.keyword === kw);
+            if (existing) {
+                existing.count++;
+                existing.lastSeen = new Date();
+            } else {
+                userKeywords.push({ keyword: kw, count: 1, lastSeen: new Date() });
+            }
+        }
+        this.keywords.set(userId, userKeywords);
+    }
+
+    async getTodosByReflectionId(reflectionId: string): Promise<Todo[]> {
+        return Array.from(this.todos.values())
+            .filter(todo => todo.sourceReflectionId === reflectionId);
+    }
+
+    async getUserKeywords(userId: string): Promise<UserKeyword[]> {
+        const userKeywords = this.keywords.get(userId) || [];
+        return userKeywords.map((k, i) => ({
+            id: `kw-${i}`,
+            userId,
+            keyword: k.keyword,
+            count: k.count,
+            lastSeen: k.lastSeen
+        }));
+    }
+
+    async getLatestReflection(userId: string): Promise<ReflectionEntry | null> {
+        const reflections = await this.getUserReflections(userId, 1);
+        return reflections.length > 0 ? reflections[0] : null;
+    }
+
     // Utility methods
     private generateId(): string {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        return uuidv4();
+    }
+}
+
+export class MongoDatabase implements IDatabase {
+    private client: MongoClient;
+    private db: Db | null = null;
+    private users: Collection<User> | null = null;
+    private reflections: Collection<ReflectionEntry> | null = null;
+    private todos: Collection<Todo> | null = null;
+    private keywords: Collection<any> | null = null;
+
+    private connectionPromise: Promise<void> | null = null;
+
+    constructor(uri: string, dbName: string) {
+        this.client = new MongoClient(uri);
+        this.connectionPromise = this.connect(dbName);
     }
 
-    // Export/import for backup/restore
-    async exportData(): Promise<{
-        users: User[];
-        reflections: ReflectionEntry[];
-        todos: Todo[];
-    }> {
-        return {
-            users: Array.from(this.users.values()),
-            reflections: Array.from(this.reflections.values()),
-            todos: Array.from(this.todos.values())
+    private async connect(dbName: string) {
+        try {
+            await this.client.connect();
+            this.db = this.client.db(dbName);
+            this.users = this.db.collection<User>('ebot_users');
+            this.reflections = this.db.collection<ReflectionEntry>('ebot_reflections');
+            this.todos = this.db.collection<Todo>('ebot_todos');
+            this.keywords = this.db.collection('ebot_keywords');
+            console.log('Connected to MongoDB');
+        } catch (error) {
+            console.error('Failed to connect to MongoDB', error);
+            throw error;
+        }
+    }
+
+    private async ensureConnection() {
+        if (this.connectionPromise) {
+            await this.connectionPromise;
+        }
+        if (!this.db || !this.users || !this.reflections || !this.todos || !this.keywords) {
+            throw new Error('Database not connected');
+        }
+    }
+
+    // User operations
+    async createUser(userData: Omit<User, 'id' | 'createdAt'>): Promise<User> {
+        await this.ensureConnection();
+        const user: User = {
+            id: uuidv4(),
+            createdAt: new Date(),
+            ...userData
         };
+        await this.users!.insertOne(user as any);
+        return user;
     }
 
-    async importData(data: {
-        users: User[];
-        reflections: ReflectionEntry[];
-        todos: Todo[];
-    }): Promise<void> {
-        // Clear existing data
-        this.users.clear();
-        this.reflections.clear();
-        this.todos.clear();
+    async getUser(userId: string): Promise<User | null> {
+        await this.ensureConnection();
+        return await this.users!.findOne({ id: userId } as any) as User | null;
+    }
 
-        // Import data
-        data.users.forEach(user => this.users.set(user.id, user));
-        data.reflections.forEach(reflection => this.reflections.set(reflection.id, reflection));
-        data.todos.forEach(todo => this.todos.set(todo.id, todo));
+    async updateUser(userId: string, updates: Partial<User>): Promise<User | null> {
+        await this.ensureConnection();
+        const result = await this.users!.findOneAndUpdate(
+            { id: userId } as any,
+            { $set: updates },
+            { returnDocument: 'after' }
+        );
+        return result as User | null;
+    }
+
+    // Reflection operations
+    async createReflection(reflectionData: Omit<ReflectionEntry, 'id'>): Promise<ReflectionEntry> {
+        await this.ensureConnection();
+        const reflection: ReflectionEntry = {
+            id: uuidv4(),
+            ...reflectionData
+        };
+        await this.reflections!.insertOne(reflection as any);
+        return reflection;
+    }
+
+    async getReflection(reflectionId: string): Promise<ReflectionEntry | null> {
+        await this.ensureConnection();
+        return await this.reflections!.findOne({ id: reflectionId } as any) as ReflectionEntry | null;
+    }
+
+    async updateReflection(reflectionId: string, updates: Partial<ReflectionEntry>): Promise<ReflectionEntry | null> {
+        await this.ensureConnection();
+        const result = await this.reflections!.findOneAndUpdate(
+            { id: reflectionId } as any,
+            { $set: updates },
+            { returnDocument: 'after' }
+        );
+        return result as ReflectionEntry | null;
+    }
+
+    async getUserReflections(userId: string, limit?: number, offset?: number): Promise<ReflectionEntry[]> {
+        await this.ensureConnection();
+        let query = this.reflections!.find({ userId } as any).sort({ timestamp: -1 });
+
+        if (offset !== undefined) {
+            query = query.skip(offset);
+        }
+
+        if (limit !== undefined) {
+            query = query.limit(limit);
+        }
+
+        const results = await query.toArray();
+        return results as ReflectionEntry[];
+    }
+
+    async deleteReflection(reflectionId: string): Promise<boolean> {
+        await this.ensureConnection();
+
+        // Remove associated todos
+        await this.todos!.deleteMany({ sourceReflectionId: reflectionId } as any);
+
+        const result = await this.reflections!.deleteOne({ id: reflectionId } as any);
+        return result.deletedCount > 0;
+    }
+
+    // Todo operations
+    async createTodo(todoData: Omit<Todo, 'id' | 'createdAt'>): Promise<Todo> {
+        await this.ensureConnection();
+        const todo: Todo = {
+            id: uuidv4(),
+            createdAt: new Date(),
+            ...todoData
+        };
+        await this.todos!.insertOne(todo as any);
+        return todo;
+    }
+
+    async getTodo(todoId: string): Promise<Todo | null> {
+        await this.ensureConnection();
+        return await this.todos!.findOne({ id: todoId } as any) as Todo | null;
+    }
+
+    async updateTodo(todoId: string, updates: Partial<Todo>): Promise<Todo | null> {
+        await this.ensureConnection();
+
+        const updateDoc: any = { $set: updates };
+
+        if (updates.isCompleted === true) {
+            updateDoc.$set.completedAt = new Date();
+        } else if (updates.isCompleted === false) {
+            updateDoc.$unset = { completedAt: "" };
+        }
+
+        const result = await this.todos!.findOneAndUpdate(
+            { id: todoId } as any,
+            updateDoc,
+            { returnDocument: 'after' }
+        );
+        return result as Todo | null;
+    }
+
+    async getUserTodos(userId: string): Promise<Todo[]> {
+        await this.ensureConnection();
+        const results = await this.todos!.find({ userId } as any).sort({ createdAt: -1 }).toArray();
+        return results as Todo[];
+    }
+
+    async deleteTodo(todoId: string): Promise<boolean> {
+        await this.ensureConnection();
+        const result = await this.todos!.deleteOne({ id: todoId } as any);
+        return result.deletedCount > 0;
+    }
+
+    async saveKeywords(userId: string, keywords: string[]): Promise<void> {
+        await this.ensureConnection();
+        for (const kw of keywords) {
+            await this.keywords!.updateOne(
+                { userId, keyword: kw },
+                {
+                    $inc: { count: 1 },
+                    $set: { lastSeen: new Date() },
+                    $setOnInsert: { id: uuidv4() }
+                },
+                { upsert: true }
+            );
+        }
+    }
+
+    async getTodosByReflectionId(reflectionId: string): Promise<Todo[]> {
+        await this.ensureConnection();
+        const results = await this.todos!.find({ sourceReflectionId: reflectionId } as any).toArray();
+        return results as Todo[];
+    }
+
+    async getUserKeywords(userId: string): Promise<UserKeyword[]> {
+        await this.ensureConnection();
+        const results = await this.keywords!.find({ userId } as any).sort({ count: -1 }).toArray();
+        return results as UserKeyword[];
+    }
+
+    async getLatestReflection(userId: string): Promise<ReflectionEntry | null> {
+        await this.ensureConnection();
+        const result = await this.reflections!.findOne({ userId } as any, { sort: { timestamp: -1 } });
+        return result as ReflectionEntry | null;
     }
 }
 
 // Export singleton instance
-export const database = new InMemoryDatabase();
+import { config } from '../config';
+
+export const database: IDatabase = config.mongodb.useMemoryDb
+    ? new InMemoryDatabase()
+    : new MongoDatabase(config.mongodb.uri, config.mongodb.dbName);
+

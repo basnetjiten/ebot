@@ -1,24 +1,33 @@
 import express from 'express';
 import cors from 'cors';
+import { config } from '../config';
 import {
     submitReflection,
     getReflectionHistory,
     updateTodoStatus,
-    getUserTodos
+    getUserTodos,
+    getTodosByReflection,
+    loginUser,
+    getUserSummary,
+    deleteReflection
 } from './routes';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = config.port;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
 // API Routes
+app.post('/api/login', loginUser);
 app.post('/api/reflections', submitReflection);
 app.get('/api/reflections/:userId', getReflectionHistory);
 app.put('/api/todos/:todoId', updateTodoStatus);
 app.get('/api/todos/:userId', getUserTodos);
+app.get('/api/reflections/:reflectionId/todos', getTodosByReflection);
+app.get('/api/users/:userId/summary', getUserSummary);
+app.delete('/api/reflections/:reflectionId', deleteReflection);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

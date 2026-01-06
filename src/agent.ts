@@ -7,20 +7,10 @@ import {
   summaryGenerator,
   feedbackGenerator,
   completionProcessor,
-  reflectionRouter
+  decisionRouter
 } from './utils/nodes';
 
 
-export const stateRoutes: Record<string, | 'reflectionProcessor' | 'keywordAnalyzer' | 'summaryGenerator' | 'feedbackGenerator' | 'completionProcessor' | 'webSearch' | typeof END> = {
-  reflectionProcessor: 'reflectionProcessor',
-  keywordAnalyzer: 'keywordAnalyzer',
-  summaryGenerator: 'summaryGenerator',
-  feedbackGenerator: 'feedbackGenerator',
-  completionProcessor: 'completionProcessor',
-  webSearch: 'webSearch',
-  end: END,
-  __end__: END,
-};
 
 
 // Create the reflection analysis graph
@@ -41,12 +31,12 @@ export const agent = () => {
       };
     })
     .addEdge(START, 'reflectionProcessor')
-    .addConditionalEdges('reflectionProcessor', reflectionRouter, stateRoutes)
-    .addConditionalEdges('keywordAnalyzer', reflectionRouter, stateRoutes)
-    .addConditionalEdges('summaryGenerator', reflectionRouter, stateRoutes)
-    .addConditionalEdges('feedbackGenerator', reflectionRouter, stateRoutes)
-    .addConditionalEdges('completionProcessor', reflectionRouter, stateRoutes)
-    .addConditionalEdges('webSearch', reflectionRouter, stateRoutes);
+    .addConditionalEdges('reflectionProcessor', decisionRouter)
+    .addConditionalEdges('keywordAnalyzer', decisionRouter)
+    .addConditionalEdges('summaryGenerator', decisionRouter)
+    .addConditionalEdges('feedbackGenerator', decisionRouter)
+    .addConditionalEdges('completionProcessor', decisionRouter)
+    .addConditionalEdges('webSearch', decisionRouter);
 
   return graph.compile();
 };

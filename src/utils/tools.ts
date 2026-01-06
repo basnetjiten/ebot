@@ -107,7 +107,7 @@ Return only the reflection summary.
 
     // Format message history
     const history = messages
-      .filter(msg => msg.content !== content) // Exclude the current message if it's already in the list
+      .filter(msg => msg.content !== content)
       .map(msg => `${msg.type === 'human' ? 'User' : 'Assistant'}: ${msg.content}`)
       .join('\n');
 
