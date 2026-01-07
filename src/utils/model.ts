@@ -6,5 +6,5 @@ import { config } from '../config';
 export const model = new ChatGoogleGenerativeAI({
     model: 'gemini-2.5-flash-lite',
     apiKey: config.google.apiKey,
-    temperature: 0,
+    temperature: 0.6,
 });

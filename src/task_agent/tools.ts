@@ -38,28 +38,33 @@ export class TaskTools {
         }
     }
 
-    static generateClarificationContent(missingFields: any[], validationErrors?: string[]): string {
+    static generateClarificationContent(
+        missingFields: any[],
+        validationErrors?: string[],
+        acknowledgement?: string,
+    ): string {
         const missingQuestions = generateMissingFieldQuestions(missingFields);
+        const opening = acknowledgement || "I'd love to help you set this up!";
 
-        // If we have both validation errors and missing fields, it means the extraction didn't work well
+        // If we have both validation errors and missing fields
         if (validationErrors && validationErrors.length > 0 && missingFields.length > 0) {
-            return `I'd love to help you set this up! To get started, could you let me know:\n\n${missingQuestions}`;
+            return `${opening} To get started, could you let me know:\n\n${missingQuestions}`;
         }
 
-        // If we only have validation errors (shouldn't happen often)
+        // If we only have validation errors
         if (validationErrors && validationErrors.length > 0) {
             const friendlyErrors = validationErrors
                 .map((err) => err.replace('Missing required field: ', ''))
                 .join(', ');
-            return `I'm having a little trouble with some details (${friendlyErrors}). Could you help me fill those in?`;
+            return `${opening}\n\nI'm having a little trouble with some details (${friendlyErrors}). Could you help me fill those in?`;
         }
 
-        // If we only have missing fields (the normal case)
+        // If we only have missing fields
         if (missingFields.length === 1) {
-            return `Just one quick thing: ${missingQuestions}`;
+            return `${opening}\n\nJust one quick thing: ${missingQuestions}`;
         }
 
-        return `I just need a couple more details:\n\n${missingQuestions}`;
+        return `${opening}\n\nI just need a couple more details:\n\n${missingQuestions}`;
     }
 
     static async generateConfirmationPrompt(task: any): Promise<string> {

@@ -26,4 +26,7 @@ export const TaskStateAnnotation = Annotation.Root({
     validationErrors: Annotation<string[] | undefined>({
         reducer: (x, y) => y ?? x,
     }),
+    acknowledgement: Annotation<string | undefined>({
+        reducer: (x, y) => y ?? x,
+    }),
 });

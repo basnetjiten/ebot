@@ -32,6 +32,7 @@ export const parseRequestNode = async (state: typeof TaskStateAnnotation.State) 
             missingFields: missingFieldsData,
             isConfirmationPending: !hasCriticalIssues,
             validationErrors: extracted.validationErrors,
+            acknowledgement: extracted.conversationalResponse,
         };
     } catch (e) {
         console.error('Error parsing task in node:', e);
@@ -49,6 +50,7 @@ export const askClarificationNode = async (state: typeof TaskStateAnnotation.Sta
     const content = TaskTools.generateClarificationContent(
         state.missingFields,
         state.validationErrors,
+        state.acknowledgement,
     );
 
     return {

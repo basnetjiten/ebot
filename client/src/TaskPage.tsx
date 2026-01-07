@@ -162,7 +162,7 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
                 {
                     sender: 'bot',
                     content:
-                        "Hey! I'm your task buddy. Tell me about something you want to schedule, build a habit for, or just get done!",
+                        "Hey! I'm Reflectly. Tell me about something you want to schedule, build a habit for, or just get done!",
                 },
             ]);
         }
@@ -316,7 +316,7 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
                                         </div>
                                         <div>
                                             <h2 className="font-black text-slate-800 tracking-tight">
-                                                Task Buddy
+                                                Reflectly
                                             </h2>
                                             <div className="flex items-center gap-1.5">
                                                 <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
@@ -346,11 +346,10 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
                                             className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                                         >
                                             <div
-                                                className={`max-w-[85%] p-5 rounded-3xl leading-relaxed text-[15px] font-medium ${
-                                                    msg.sender === 'user'
-                                                        ? 'bg-indigo-600 text-white rounded-tr-none shadow-xl shadow-indigo-100'
-                                                        : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none shadow-sm shadow-slate-100/50'
-                                                }`}
+                                                className={`max-w-[85%] p-5 rounded-3xl leading-relaxed text-[15px] font-medium ${msg.sender === 'user'
+                                                    ? 'bg-indigo-600 text-white rounded-tr-none shadow-xl shadow-indigo-100'
+                                                    : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none shadow-sm shadow-slate-100/50'
+                                                    }`}
                                             >
                                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                     {msg.content}
