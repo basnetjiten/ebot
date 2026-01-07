@@ -7,8 +7,8 @@ export const TASK_SCHEMAS = {
             notes: { type: 'string', maxLength: 1000 },
             dueDate: { type: 'iso8601', description: 'When task should be completed' },
             tags: { type: 'array', items: 'string', maxItems: 10 },
-            subtasks: { type: 'array', items: { title: 'string', completed: 'boolean' } }
-        }
+            subtasks: { type: 'array', items: { title: 'string', completed: 'boolean' } },
+        },
     },
     event: {
         required: ['startTime', 'endTime'],
@@ -22,18 +22,24 @@ export const TASK_SCHEMAS = {
                 items: {
                     name: 'string',
                     email: 'string?',
-                    status: { type: 'enum', values: ['invited', 'accepted', 'declined', 'tentative'] }
-                }
+                    status: {
+                        type: 'enum',
+                        values: ['invited', 'accepted', 'declined', 'tentative'],
+                    },
+                },
             },
             recurrence: {
                 type: 'object',
                 pattern: { type: 'enum', values: ['daily', 'weekly', 'monthly', 'yearly'] },
                 interval: { type: 'number', min: 1 },
-                endDate: 'iso8601?'
+                endDate: 'iso8601?',
             },
-            reminders: { type: 'array', items: { type: 'enum', values: ['5min', '15min', '1hour', '1day'] } },
-            videoLink: { type: 'url' }
-        }
+            reminders: {
+                type: 'array',
+                items: { type: 'enum', values: ['5min', '15min', '1hour', '1day'] },
+            },
+            videoLink: { type: 'url' },
+        },
     },
     habit: {
         required: ['frequency'],
@@ -43,18 +49,28 @@ export const TASK_SCHEMAS = {
             customFrequency: {
                 type: 'object',
                 condition: 'frequency === "custom"',
-                daysOfWeek: { type: 'array', items: { type: 'enum', values: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] } }
+                daysOfWeek: {
+                    type: 'array',
+                    items: {
+                        type: 'enum',
+                        values: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+                    },
+                },
             },
             timeOfDay: { type: 'time', format: 'HH:MM' },
-            targetStreak: { type: 'number', min: 1, description: 'Number of consecutive completions' },
+            targetStreak: {
+                type: 'number',
+                min: 1,
+                description: 'Number of consecutive completions',
+            },
             reminderTime: { type: 'time', format: 'HH:MM' },
             trackingMetric: {
                 type: 'object',
                 unit: 'string',
                 target: 'number',
-                description: 'e.g., {unit: "minutes", target: 30}'
-            }
-        }
+                description: 'e.g., {unit: "minutes", target: 30}',
+            },
+        },
     },
     reminder: {
         required: ['triggerTime'],
@@ -65,12 +81,15 @@ export const TASK_SCHEMAS = {
                 type: 'object',
                 pattern: { type: 'enum', values: ['none', 'daily', 'weekly', 'monthly'] },
                 interval: { type: 'number', min: 1, default: 1 },
-                endDate: 'iso8601?'
+                endDate: 'iso8601?',
             },
-            snoozeOptions: { type: 'array', items: { type: 'enum', values: ['5min', '10min', '30min', '1hour'] } },
-            priority: { type: 'enum', values: ['low', 'medium', 'high', 'urgent'] }
-        }
-    }
+            snoozeOptions: {
+                type: 'array',
+                items: { type: 'enum', values: ['5min', '10min', '30min', '1hour'] },
+            },
+            priority: { type: 'enum', values: ['low', 'medium', 'high', 'urgent'] },
+        },
+    },
 } as const;
 
 export const validateTaskData = (type: string, data: Record<string, any>): string[] => {

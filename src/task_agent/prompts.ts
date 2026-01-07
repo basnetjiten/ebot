@@ -1,18 +1,19 @@
 import { TASK_SCHEMAS } from './schemas';
 
 export const buildSystemPrompt = () => {
-    const schemaDescriptions = Object.entries(TASK_SCHEMAS).map(([type, config]) => {
-        const requiredFields = config.required.length > 0
-            ? `\n  Must have: ${config.required.join(', ')}`
-            : '';
-        const optionalFields = `\n  Nice to have: ${config.optional.join(', ')}`;
-        const schemaDetails = JSON.stringify(config.schema, null, 2);
+    const schemaDescriptions = Object.entries(TASK_SCHEMAS)
+        .map(([type, config]) => {
+            const requiredFields =
+                config.required.length > 0 ? `\n  Must have: ${config.required.join(', ')}` : '';
+            const optionalFields = `\n  Nice to have: ${config.optional.join(', ')}`;
+            const schemaDetails = JSON.stringify(config.schema, null, 2);
 
-        return `
+            return `
 ${type.toUpperCase()}:${requiredFields}${optionalFields}
 Schema:
 ${schemaDetails}`;
-    }).join('\n\n');
+        })
+        .join('\n\n');
 
     return `Hey there! You're a friendly task assistant helping people organize their plans and ideas.
 

@@ -9,7 +9,7 @@ import {
     getUserTodos,
     getTodosByReflection,
     loginUser,
-    getUserSummary
+    getUserSummary,
 } from './routes';
 import taskRoutes from './task_routes';
 
@@ -41,12 +41,12 @@ app.get('/health', (req, res) => {
 });
 
 // Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error('Unhandled error:', err);
     res.status(500).json({
         success: false,
         error: 'Internal server error',
-        timestamp: new Date()
+        timestamp: new Date(),
     });
 });
 
@@ -55,7 +55,7 @@ app.use((req, res) => {
     res.status(404).json({
         success: false,
         error: 'Endpoint not found',
-        timestamp: new Date()
+        timestamp: new Date(),
     });
 });
 

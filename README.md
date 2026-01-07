@@ -32,17 +32,20 @@ ebot/
 ## Setup
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Set up environment variables:
+
 ```bash
 cp .env.example .env
 # Edit .env and add your OPENAI_API_KEY
 ```
 
 3. Build the project:
+
 ```bash
 npm run build
 ```
@@ -50,11 +53,13 @@ npm run build
 ## Development
 
 Start the LangGraph development server:
+
 ```bash
 npm run dev
 ```
 
 This will start the local Agent Server with hot reloading and expose the following:
+
 - HTTP API server (default port: 8080)
 - Managed database for checkpointing
 - LangSmith tracing integration

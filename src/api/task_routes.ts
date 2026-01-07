@@ -27,7 +27,7 @@ router.post('/chat', async (req, res) => {
             // If the client sends back the gathered partialTask, we use it
             partialTask: previousState?.partialTask || {},
             missingFields: previousState?.missingFields || [],
-            isConfirmationPending: previousState?.isConfirmationPending || false
+            isConfirmationPending: previousState?.isConfirmationPending || false,
         };
 
         const result = await taskAgent.invoke(inputs, config);
@@ -42,10 +42,9 @@ router.post('/chat', async (req, res) => {
                 partialTask: result.partialTask,
                 missingFields: result.missingFields,
                 isConfirmationPending: result.isConfirmationPending,
-                isComplete: result.isComplete
-            }
+                isComplete: result.isComplete,
+            },
         });
-
     } catch (error) {
         console.error('Task Chat Error:', error);
         res.status(500).json({ success: false, error: 'Internal server error' });
@@ -57,7 +56,7 @@ router.get('/:userId', async (req, res) => {
     try {
         const tasks = await taskStore.getTasks(req.params.userId);
         res.json({ success: true, data: tasks });
-    } catch (error) {
+    } catch (_error) {
         res.status(500).json({ success: false, error: 'Failed to fetch tasks' });
     }
 });
@@ -67,7 +66,7 @@ router.put('/:taskId/status', async (req, res) => {
     try {
         const result = await taskStore.updateTaskStatus(req.params.taskId, req.body.status);
         res.json({ success: true, data: result });
-    } catch (error) {
+    } catch (_error) {
         res.status(500).json({ success: false, error: 'Failed to update task' });
     }
 });
@@ -77,7 +76,7 @@ router.delete('/:taskId', async (req, res) => {
     try {
         const result = await taskStore.deleteTask(req.params.taskId);
         res.json({ success: true, data: result });
-    } catch (error) {
+    } catch (_error) {
         res.status(500).json({ success: false, error: 'Failed to delete task' });
     }
 });

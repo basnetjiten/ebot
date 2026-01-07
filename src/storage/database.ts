@@ -1,4 +1,4 @@
-import { MongoClient, Collection, Db, ObjectId } from 'mongodb';
+import { MongoClient, Collection, Db } from 'mongodb';
 import { ReflectionEntry, Todo, User, UserKeyword } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -8,7 +8,10 @@ export interface IDatabase {
     updateUser(userId: string, updates: Partial<User>): Promise<User | null>;
     createReflection(reflectionData: Omit<ReflectionEntry, 'id'>): Promise<ReflectionEntry>;
     getReflection(reflectionId: string): Promise<ReflectionEntry | null>;
-    updateReflection(reflectionId: string, updates: Partial<ReflectionEntry>): Promise<ReflectionEntry | null>;
+    updateReflection(
+        reflectionId: string,
+        updates: Partial<ReflectionEntry>,
+    ): Promise<ReflectionEntry | null>;
     getUserReflections(userId: string, limit?: number, offset?: number): Promise<ReflectionEntry[]>;
     deleteReflection(reflectionId: string): Promise<boolean>;
     createTodo(todoData: Omit<Todo, 'id' | 'createdAt'>): Promise<Todo>;
@@ -27,14 +30,14 @@ export class InMemoryDatabase implements IDatabase {
     private users = new Map<string, User>();
     private reflections = new Map<string, ReflectionEntry>();
     private todos = new Map<string, Todo>();
-    private keywords = new Map<string, { keyword: string, count: number, lastSeen: Date }[]>();
+    private keywords = new Map<string, { keyword: string; count: number; lastSeen: Date }[]>();
 
     // User operations
     async createUser(userData: Omit<User, 'id' | 'createdAt'>): Promise<User> {
         const user: User = {
             id: this.generateId(),
             createdAt: new Date(),
-            ...userData
+            ...userData,
         };
         this.users.set(user.id, user);
         return user;
@@ -57,7 +60,7 @@ export class InMemoryDatabase implements IDatabase {
     async createReflection(reflectionData: Omit<ReflectionEntry, 'id'>): Promise<ReflectionEntry> {
         const reflection: ReflectionEntry = {
             id: this.generateId(),
-            ...reflectionData
+            ...reflectionData,
         };
         this.reflections.set(reflection.id, reflection);
         return reflection;
@@ -67,7 +70,10 @@ export class InMemoryDatabase implements IDatabase {
         return this.reflections.get(reflectionId) || null;
     }
 
-    async updateReflection(reflectionId: string, updates: Partial<ReflectionEntry>): Promise<ReflectionEntry | null> {
+    async updateReflection(
+        reflectionId: string,
+        updates: Partial<ReflectionEntry>,
+    ): Promise<ReflectionEntry | null> {
         const reflection = this.reflections.get(reflectionId);
         if (!reflection) return null;
 
@@ -76,9 +82,13 @@ export class InMemoryDatabase implements IDatabase {
         return updatedReflection;
     }
 
-    async getUserReflections(userId: string, limit?: number, offset?: number): Promise<ReflectionEntry[]> {
+    async getUserReflections(
+        userId: string,
+        limit?: number,
+        offset?: number,
+    ): Promise<ReflectionEntry[]> {
         const userReflections = Array.from(this.reflections.values())
-            .filter(reflection => reflection.userId === userId)
+            .filter((reflection) => reflection.userId === userId)
             .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
         if (offset !== undefined) {
@@ -97,8 +107,9 @@ export class InMemoryDatabase implements IDatabase {
         if (!reflection) return false;
 
         // Remove associated todos
-        const associatedTodos = Array.from(this.todos.values())
-            .filter(todo => todo.sourceReflectionId === reflectionId);
+        const associatedTodos = Array.from(this.todos.values()).filter(
+            (todo) => todo.sourceReflectionId === reflectionId,
+        );
 
         for (const todo of associatedTodos) {
             this.todos.delete(todo.id);
@@ -112,7 +123,7 @@ export class InMemoryDatabase implements IDatabase {
         const todo: Todo = {
             id: this.generateId(),
             createdAt: new Date(),
-            ...todoData
+            ...todoData,
         };
         this.todos.set(todo.id, todo);
         return todo;
@@ -139,7 +150,7 @@ export class InMemoryDatabase implements IDatabase {
 
     async getUserTodos(userId: string): Promise<Todo[]> {
         return Array.from(this.todos.values())
-            .filter(todo => todo.userId === userId)
+            .filter((todo) => todo.userId === userId)
             .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     }
 
@@ -148,9 +159,9 @@ export class InMemoryDatabase implements IDatabase {
     }
 
     async saveKeywords(userId: string, keywords: string[]): Promise<void> {
-        let userKeywords = this.keywords.get(userId) || [];
+        const userKeywords = this.keywords.get(userId) || [];
         for (const kw of keywords) {
-            const existing = userKeywords.find(k => k.keyword === kw);
+            const existing = userKeywords.find((k) => k.keyword === kw);
             if (existing) {
                 existing.count++;
                 existing.lastSeen = new Date();
@@ -162,18 +173,19 @@ export class InMemoryDatabase implements IDatabase {
     }
 
     async getTodosByReflectionId(reflectionId: string): Promise<Todo[]> {
-        return Array.from(this.todos.values())
-            .filter(todo => todo.sourceReflectionId === reflectionId);
+        return Array.from(this.todos.values()).filter(
+            (todo) => todo.sourceReflectionId === reflectionId,
+        );
     }
 
     async getUserKeywords(userId: string): Promise<UserKeyword[]> {
         const userKeywords = this.keywords.get(userId) || [];
         return userKeywords.map((k, i) => ({
-            id: `kw-${i}`,
+            id: `kw - ${i} `,
             userId,
             keyword: k.keyword,
             count: k.count,
-            lastSeen: k.lastSeen
+            lastSeen: k.lastSeen,
         }));
     }
 
@@ -233,7 +245,7 @@ export class MongoDatabase implements IDatabase {
         const user: User = {
             id: uuidv4(),
             createdAt: new Date(),
-            ...userData
+            ...userData,
         };
         await this.users!.insertOne(user as any);
         return user;
@@ -241,7 +253,7 @@ export class MongoDatabase implements IDatabase {
 
     async getUser(userId: string): Promise<User | null> {
         await this.ensureConnection();
-        return await this.users!.findOne({ id: userId } as any) as User | null;
+        return (await this.users!.findOne({ id: userId } as any)) as User | null;
     }
 
     async updateUser(userId: string, updates: Partial<User>): Promise<User | null> {
@@ -249,7 +261,7 @@ export class MongoDatabase implements IDatabase {
         const result = await this.users!.findOneAndUpdate(
             { id: userId } as any,
             { $set: updates },
-            { returnDocument: 'after' }
+            { returnDocument: 'after' },
         );
         return result as User | null;
     }
@@ -259,7 +271,7 @@ export class MongoDatabase implements IDatabase {
         await this.ensureConnection();
         const reflection: ReflectionEntry = {
             id: uuidv4(),
-            ...reflectionData
+            ...reflectionData,
         };
         await this.reflections!.insertOne(reflection as any);
         return reflection;
@@ -267,20 +279,29 @@ export class MongoDatabase implements IDatabase {
 
     async getReflection(reflectionId: string): Promise<ReflectionEntry | null> {
         await this.ensureConnection();
-        return await this.reflections!.findOne({ id: reflectionId } as any) as ReflectionEntry | null;
+        return (await this.reflections!.findOne({
+            id: reflectionId,
+        } as any)) as ReflectionEntry | null;
     }
 
-    async updateReflection(reflectionId: string, updates: Partial<ReflectionEntry>): Promise<ReflectionEntry | null> {
+    async updateReflection(
+        reflectionId: string,
+        updates: Partial<ReflectionEntry>,
+    ): Promise<ReflectionEntry | null> {
         await this.ensureConnection();
         const result = await this.reflections!.findOneAndUpdate(
             { id: reflectionId } as any,
             { $set: updates },
-            { returnDocument: 'after' }
+            { returnDocument: 'after' },
         );
         return result as ReflectionEntry | null;
     }
 
-    async getUserReflections(userId: string, limit?: number, offset?: number): Promise<ReflectionEntry[]> {
+    async getUserReflections(
+        userId: string,
+        limit?: number,
+        offset?: number,
+    ): Promise<ReflectionEntry[]> {
         await this.ensureConnection();
         let query = this.reflections!.find({ userId } as any).sort({ timestamp: -1 });
 
@@ -312,7 +333,7 @@ export class MongoDatabase implements IDatabase {
         const todo: Todo = {
             id: uuidv4(),
             createdAt: new Date(),
-            ...todoData
+            ...todoData,
         };
         await this.todos!.insertOne(todo as any);
         return todo;
@@ -320,7 +341,7 @@ export class MongoDatabase implements IDatabase {
 
     async getTodo(todoId: string): Promise<Todo | null> {
         await this.ensureConnection();
-        return await this.todos!.findOne({ id: todoId } as any) as Todo | null;
+        return (await this.todos!.findOne({ id: todoId } as any)) as Todo | null;
     }
 
     async updateTodo(todoId: string, updates: Partial<Todo>): Promise<Todo | null> {
@@ -331,20 +352,20 @@ export class MongoDatabase implements IDatabase {
         if (updates.isCompleted === true) {
             updateDoc.$set.completedAt = new Date();
         } else if (updates.isCompleted === false) {
-            updateDoc.$unset = { completedAt: "" };
+            updateDoc.$unset = { completedAt: '' };
         }
 
-        const result = await this.todos!.findOneAndUpdate(
-            { id: todoId } as any,
-            updateDoc,
-            { returnDocument: 'after' }
-        );
+        const result = await this.todos!.findOneAndUpdate({ id: todoId } as any, updateDoc, {
+            returnDocument: 'after',
+        });
         return result as Todo | null;
     }
 
     async getUserTodos(userId: string): Promise<Todo[]> {
         await this.ensureConnection();
-        const results = await this.todos!.find({ userId } as any).sort({ createdAt: -1 }).toArray();
+        const results = await this.todos!.find({ userId } as any)
+            .sort({ createdAt: -1 })
+            .toArray();
         return results as Todo[];
     }
 
@@ -362,28 +383,34 @@ export class MongoDatabase implements IDatabase {
                 {
                     $inc: { count: 1 },
                     $set: { lastSeen: new Date() },
-                    $setOnInsert: { id: uuidv4() }
+                    $setOnInsert: { id: uuidv4() },
                 },
-                { upsert: true }
+                { upsert: true },
             );
         }
     }
 
     async getTodosByReflectionId(reflectionId: string): Promise<Todo[]> {
         await this.ensureConnection();
-        const results = await this.todos!.find({ sourceReflectionId: reflectionId } as any).toArray();
+        const results = await this.todos!.find({
+            sourceReflectionId: reflectionId,
+        } as any).toArray();
         return results as Todo[];
     }
 
     async getUserKeywords(userId: string): Promise<UserKeyword[]> {
         await this.ensureConnection();
-        const results = await this.keywords!.find({ userId } as any).sort({ count: -1 }).toArray();
+        const results = await this.keywords!.find({ userId } as any)
+            .sort({ count: -1 })
+            .toArray();
         return results as UserKeyword[];
     }
 
     async getLatestReflection(userId: string): Promise<ReflectionEntry | null> {
         await this.ensureConnection();
-        const result = await this.reflections!.findOne({ userId } as any, { sort: { timestamp: -1 } });
+        const result = await this.reflections!.findOne({ userId } as any, {
+            sort: { timestamp: -1 },
+        });
         return result as ReflectionEntry | null;
     }
 }
@@ -394,4 +421,3 @@ import { config } from '../config';
 export const database: IDatabase = config.mongodb.useMemoryDb
     ? new InMemoryDatabase()
     : new MongoDatabase(config.mongodb.uri, config.mongodb.dbName);
-

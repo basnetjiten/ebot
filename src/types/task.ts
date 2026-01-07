@@ -1,4 +1,4 @@
-import { BaseMessage } from "@langchain/core/messages";
+import { BaseMessage } from '@langchain/core/messages';
 
 export type TaskType = 'todo' | 'event' | 'habit' | 'reminder';
 
@@ -58,8 +58,8 @@ export interface TaskAgentState {
     messages: any[];
     userId: string;
     partialTask: Partial<Task>;
-    missingFields: string[]; // Still useful to track what AI *thinks* is missing based on its own generated schema? 
-    // Actually if schema is dynamic, "missing" is relative. 
+    missingFields: string[]; // Still useful to track what AI *thinks* is missing based on its own generated schema?
+    // Actually if schema is dynamic, "missing" is relative.
     // The AI deciding what is missing is part of the new prompt logic.
     isConfirmationPending: boolean;
     isComplete: boolean;

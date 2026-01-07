@@ -9,10 +9,12 @@ export interface ParsedTask {
     validationErrors?: string[];
 }
 
-export const generateMissingFieldQuestions = (missingFields: ParsedTask['missingFields']): string => {
+export const generateMissingFieldQuestions = (
+    missingFields: ParsedTask['missingFields'],
+): string => {
     if (!missingFields || missingFields.length === 0) return '';
 
     return missingFields
-        .map(field => field.suggestedQuestion || `What is the ${field.field}?`)
+        .map((field) => field.suggestedQuestion || `What is the ${field.field}?`)
         .join('\n');
 };

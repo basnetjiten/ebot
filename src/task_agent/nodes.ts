@@ -1,11 +1,11 @@
-import { AIMessage } from "@langchain/core/messages";
+import { AIMessage } from '@langchain/core/messages';
 import { END } from '@langchain/langgraph';
-import { TaskStateAnnotation } from "./state";
-import { TaskTools } from "./tools";
+import { TaskStateAnnotation } from './state';
+import { TaskTools } from './tools';
 
 // Node: Parse User Request
 export const parseRequestNode = async (state: typeof TaskStateAnnotation.State) => {
-    console.log("Parsing request...");
+    console.log('Parsing request...');
 
     try {
         const extracted = await TaskTools.extractTaskDetails(state.messages, state.partialTask);
@@ -17,8 +17,8 @@ export const parseRequestNode = async (state: typeof TaskStateAnnotation.State) 
             summary: extracted.summary || state.partialTask.summary,
             data: {
                 ...(state.partialTask.data || {}),
-                ...extracted.data
-            }
+                ...extracted.data,
+            },
         };
 
         // Check for any remaining missing fields
@@ -31,38 +31,47 @@ export const parseRequestNode = async (state: typeof TaskStateAnnotation.State) 
             partialTask: updatedTask,
             missingFields: missingFieldsData,
             isConfirmationPending: !hasCriticalIssues,
-            validationErrors: extracted.validationErrors
+            validationErrors: extracted.validationErrors,
         };
-
     } catch (e) {
-        console.error("Error parsing task in node:", e);
+        console.error('Error parsing task in node:', e);
         return {
-            error: "Failed to parse task details. Please try rephrasing your request.",
-            validationErrors: [e instanceof Error ? e.message : String(e)]
+            error: 'Failed to parse task details. Please try rephrasing your request.',
+            validationErrors: [e instanceof Error ? e.message : String(e)],
         };
     }
 };
 
 // Node: Ask Clarification
 export const askClarificationNode = async (state: typeof TaskStateAnnotation.State) => {
-    console.log("Asking clarification...");
+    console.log('Asking clarification...');
 
-    const content = TaskTools.generateClarificationContent(state.missingFields, state.validationErrors);
+    const content = TaskTools.generateClarificationContent(
+        state.missingFields,
+        state.validationErrors,
+    );
 
     return {
         messages: [new AIMessage(content)],
-        isConfirmationPending: false
+        isConfirmationPending: false,
     };
 };
 
 // Node: Confirm Task
 export const confirmTaskNode = async (state: typeof TaskStateAnnotation.State) => {
-    console.log("Confirming task...");
+    console.log('Confirming task...');
 
     // Check if user has just said "yes" or "confirmed"
     const lastMessage = state.messages[state.messages.length - 1].content.toLowerCase();
 
-    if (state.isConfirmationPending === true && (lastMessage === 'yes' || lastMessage === 'confirm' || lastMessage.includes('create it') || lastMessage === 'ok')) {
+    if (
+        state.isConfirmationPending === true &&
+        (lastMessage === 'yes' ||
+            lastMessage === 'perfect' ||
+            lastMessage === 'confirm' ||
+            lastMessage.includes('create it') ||
+            lastMessage === 'ok')
+    ) {
         // User confirmed!
         return { isComplete: true };
     }
@@ -72,22 +81,22 @@ export const confirmTaskNode = async (state: typeof TaskStateAnnotation.State) =
 
     return {
         messages: [new AIMessage(content)],
-        isConfirmationPending: true
+        isConfirmationPending: true,
     };
 };
 
 // Node: Save Task
 export const saveTaskNode = async (state: typeof TaskStateAnnotation.State) => {
-    console.log("Saving task...");
+    console.log('Saving task...');
 
     if (state.isComplete) {
         const newTask = await TaskTools.createTask(state.userId, state.partialTask);
 
         return {
             messages: [new AIMessage(`Task "${newTask.title}" created successfully!`)],
-            partialTask: {}, // Reset
+            partialTask: {},
             isComplete: false,
-            isConfirmationPending: false
+            isConfirmationPending: false,
         };
     }
 
@@ -96,14 +105,14 @@ export const saveTaskNode = async (state: typeof TaskStateAnnotation.State) => {
 
 export const routeNode = (state: typeof TaskStateAnnotation.State) => {
     if (state.isComplete) {
-        return "saveTask";
+        return 'saveTask';
     }
     if (state.error) {
         return END;
     }
     if (state.isConfirmationPending) {
-        return "confirmTask";
+        return 'confirmTask';
     }
 
-    return "askClarification";
+    return 'askClarification';
 };

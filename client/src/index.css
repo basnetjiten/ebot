@@ -1,32 +1,32 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+    font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
 body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
 }
 
 .prose {
-  @apply text-slate-700 leading-relaxed;
+    @apply text-slate-700 leading-relaxed;
 }
 
 .prose p {
-  @apply mb-4 last:mb-0;
+    @apply mb-4 last:mb-0;
 }
 
 /* Custom scrollbar for better look */
 ::-webkit-scrollbar {
-  width: 6px;
+    width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-transparent;
+    @apply bg-transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+    @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
 }

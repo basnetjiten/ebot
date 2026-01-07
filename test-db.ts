@@ -12,7 +12,7 @@ async function testConnection() {
             userId: testUserId,
             type: 'morning',
             timestamp: new Date(),
-            content: 'I am feeling very productive today and I want to code more.'
+            content: 'I am feeling very productive today and I want to code more.',
         });
         console.log('Created reflection for non-existent user:', reflection.id);
 
@@ -22,8 +22,8 @@ async function testConnection() {
             preferences: {
                 feedbackStyle: 'encouraging',
                 moodTrackingEnabled: true,
-                summaryFrequency: 'daily'
-            }
+                summaryFrequency: 'daily',
+            },
         } as any);
         console.log('Auto-created user:', user.id);
 

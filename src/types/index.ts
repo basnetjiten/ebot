@@ -32,8 +32,6 @@ export interface User {
     };
 }
 
-
-
 export interface MobileAPIResponse<T = any> {
     success: boolean;
     data?: T;

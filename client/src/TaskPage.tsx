@@ -2,8 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    HiPlus, HiChat, HiViewGrid, HiTrash,
-    HiCheckCircle, HiCalendar, HiLightningBolt, HiBell, HiClock, HiLocationMarker, HiUserGroup
+    HiPlus,
+    HiChat,
+    HiViewGrid,
+    HiTrash,
+    HiCheckCircle,
+    HiCalendar,
+    HiLightningBolt,
+    HiBell,
+    HiClock,
+    HiLocationMarker,
+    HiUserGroup,
 } from 'react-icons/hi';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -31,16 +40,21 @@ interface TaskPageProps {
 // Icon helper
 const getTaskIcon = (type: TaskType) => {
     switch (type) {
-        case 'todo': return <HiCheckCircle className="text-blue-500" size={24} />;
-        case 'event': return <HiCalendar className="text-purple-500" size={24} />;
-        case 'habit': return <HiLightningBolt className="text-amber-500" size={24} />;
-        case 'reminder': return <HiBell className="text-rose-500" size={24} />;
-        default: return <HiViewGrid className="text-slate-500" size={24} />;
+        case 'todo':
+            return <HiCheckCircle className="text-blue-500" size={24} />;
+        case 'event':
+            return <HiCalendar className="text-purple-500" size={24} />;
+        case 'habit':
+            return <HiLightningBolt className="text-amber-500" size={24} />;
+        case 'reminder':
+            return <HiBell className="text-rose-500" size={24} />;
+        default:
+            return <HiViewGrid className="text-slate-500" size={24} />;
     }
 };
 
 // Type-specific data renderer
-const TaskDataRenderer = ({ type, data }: { type: TaskType, data: any }) => {
+const TaskDataRenderer = ({ type, data }: { type: TaskType; data: any }) => {
     if (!data) return null;
 
     if (type === 'event') {
@@ -49,7 +63,8 @@ const TaskDataRenderer = ({ type, data }: { type: TaskType, data: any }) => {
                 <div className="flex items-center gap-2">
                     <HiClock className="text-slate-400" />
                     <span>
-                        {new Date(data.startTime).toLocaleString()} - {new Date(data.endTime).toLocaleTimeString()}
+                        {new Date(data.startTime).toLocaleString()} -{' '}
+                        {new Date(data.endTime).toLocaleTimeString()}
                     </span>
                 </div>
                 {data.location && (
@@ -63,7 +78,10 @@ const TaskDataRenderer = ({ type, data }: { type: TaskType, data: any }) => {
                         <HiUserGroup className="text-slate-400 mt-0.5" />
                         <div className="flex flex-wrap gap-1">
                             {data.attendees.map((attendee: string, i: number) => (
-                                <span key={i} className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full text-xs">
+                                <span
+                                    key={i}
+                                    className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full text-xs"
+                                >
                                     {attendee}
                                 </span>
                             ))}
@@ -79,8 +97,15 @@ const TaskDataRenderer = ({ type, data }: { type: TaskType, data: any }) => {
             <div className="space-y-1 mt-2">
                 {data.subtasks.map((sub: any, i: number) => (
                     <div key={i} className="flex items-center gap-2 text-sm text-slate-600">
-                        <input type="checkbox" checked={sub.completed} readOnly className="rounded border-slate-300" />
-                        <span className={sub.completed ? "line-through text-slate-400" : ""}>{sub.title}</span>
+                        <input
+                            type="checkbox"
+                            checked={sub.completed}
+                            readOnly
+                            className="rounded border-slate-300"
+                        />
+                        <span className={sub.completed ? 'line-through text-slate-400' : ''}>
+                            {sub.title}
+                        </span>
                     </div>
                 ))}
             </div>
@@ -91,7 +116,9 @@ const TaskDataRenderer = ({ type, data }: { type: TaskType, data: any }) => {
         return (
             <div className="text-sm text-slate-600">
                 <span className="font-bold">Frequency:</span> {data.frequency}
-                {data.streak !== undefined && <span className="ml-3">🔥 {data.streak} day streak</span>}
+                {data.streak !== undefined && (
+                    <span className="ml-3">🔥 {data.streak} day streak</span>
+                )}
             </div>
         );
     }
@@ -101,7 +128,9 @@ const TaskDataRenderer = ({ type, data }: { type: TaskType, data: any }) => {
         <div className="space-y-2 text-sm text-slate-600">
             {Object.entries(data).map(([key, value]) => (
                 <div key={key} className="flex flex-col gap-1">
-                    <span className="font-bold text-xs uppercase tracking-wider text-slate-400">{key}</span>
+                    <span className="font-bold text-xs uppercase tracking-wider text-slate-400">
+                        {key}
+                    </span>
                     <div className="bg-slate-50 p-2 rounded-md overflow-x-auto">
                         {typeof value === 'object' ? JSON.stringify(value) : String(value)}
                     </div>
@@ -129,7 +158,13 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
 
     useEffect(() => {
         if (isCreating && messages.length === 0) {
-            setMessages([{ sender: 'bot', content: "Hey! I'm your task buddy. Tell me about something you want to schedule, build a habit for, or just get done!" }]);
+            setMessages([
+                {
+                    sender: 'bot',
+                    content:
+                        "Hey! I'm your task buddy. Tell me about something you want to schedule, build a habit for, or just get done!",
+                },
+            ]);
         }
     }, [isCreating]);
 
@@ -142,7 +177,7 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
             const res = await axios.get(`http://localhost:3000/api/tasks/${userId}`);
             setTasks(res.data.data);
         } catch (e) {
-            console.error("Failed to fetch tasks", e);
+            console.error('Failed to fetch tasks', e);
         }
     };
 
@@ -152,7 +187,7 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
 
         if (!userMsg.trim() || isSubmitting) return;
 
-        setMessages(prev => [...prev, { sender: 'user', content: userMsg }]);
+        setMessages((prev) => [...prev, { sender: 'user', content: userMsg }]);
         if (typeof e !== 'string') setInput('');
         setIsSubmitting(true);
 
@@ -161,11 +196,11 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
                 userId,
                 message: userMsg,
                 history: messages,
-                previousState: agentState
+                previousState: agentState,
             });
 
             const botMsg = res.data.message;
-            setMessages(prev => [...prev, { sender: 'bot', content: botMsg }]);
+            setMessages((prev) => [...prev, { sender: 'bot', content: botMsg }]);
 
             if (res.data.state) {
                 setAgentState(res.data.state);
@@ -177,7 +212,10 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
             }
         } catch (error) {
             console.error(error);
-            setMessages(prev => [...prev, { sender: 'bot', content: "Oops, something went wrong on my end." }]);
+            setMessages((prev) => [
+                ...prev,
+                { sender: 'bot', content: 'Oops, something went wrong on my end.' },
+            ]);
         } finally {
             setIsSubmitting(false);
         }
@@ -190,7 +228,7 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
             setTaskToDelete(null);
             fetchTasks();
         } catch (e) {
-            console.error("Delete failed", e);
+            console.error('Delete failed', e);
             setTaskToDelete(null);
         }
     };
@@ -203,10 +241,10 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
     };
 
     const quickChips = [
-        { label: "📅 Schedule Meeting", query: "Schedule a team meeting for tomorrow at 2pm" },
-        { label: "✅ Daily Habit", query: "I want to start drinking 3L of water every day" },
-        { label: "🔔 Set Reminder", query: "Remind me to call the dentist in 1 hour" },
-        { label: "📝 New Todo", query: "Add a task to buy groceries today" }
+        { label: '📅 Schedule Meeting', query: 'Schedule a team meeting for tomorrow at 2pm' },
+        { label: '✅ Daily Habit', query: 'I want to start drinking 3L of water every day' },
+        { label: '🔔 Set Reminder', query: 'Remind me to call the dentist in 1 hour' },
+        { label: '📝 New Todo', query: 'Add a task to buy groceries today' },
     ];
 
     return (
@@ -229,7 +267,9 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
                             <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 mb-6 mx-auto">
                                 <HiTrash size={40} />
                             </div>
-                            <h3 className="text-2xl font-black text-slate-800 mb-2">Delete Task?</h3>
+                            <h3 className="text-2xl font-black text-slate-800 mb-2">
+                                Delete Task?
+                            </h3>
                             <p className="text-slate-500 mb-8 leading-relaxed font-medium">
                                 This will permanently remove this record. Ready to let it go?
                             </p>
@@ -275,14 +315,21 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
                                             <HiChat size={20} />
                                         </div>
                                         <div>
-                                            <h2 className="font-black text-slate-800 tracking-tight">Task Buddy</h2>
+                                            <h2 className="font-black text-slate-800 tracking-tight">
+                                                Task Buddy
+                                            </h2>
                                             <div className="flex items-center gap-1.5">
                                                 <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                                                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Always Active</span>
+                                                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">
+                                                    Always Active
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
-                                    <button onClick={handleFinishCreation} className="text-slate-400 hover:text-slate-600 p-2 transition-colors">
+                                    <button
+                                        onClick={handleFinishCreation}
+                                        className="text-slate-400 hover:text-slate-600 p-2 transition-colors"
+                                    >
                                         <HiPlus className="rotate-45" size={24} />
                                     </button>
                                 </div>
@@ -290,16 +337,24 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
                                 <div className="flex-1 overflow-y-auto p-8 space-y-6">
                                     {messages.map((msg, idx) => (
                                         <motion.div
-                                            initial={{ opacity: 0, x: msg.sender === 'user' ? 20 : -20 }}
+                                            initial={{
+                                                opacity: 0,
+                                                x: msg.sender === 'user' ? 20 : -20,
+                                            }}
                                             animate={{ opacity: 1, x: 0 }}
                                             key={idx}
                                             className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                                         >
-                                            <div className={`max-w-[85%] p-5 rounded-3xl leading-relaxed text-[15px] font-medium ${msg.sender === 'user'
-                                                ? 'bg-indigo-600 text-white rounded-tr-none shadow-xl shadow-indigo-100'
-                                                : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none shadow-sm shadow-slate-100/50'
-                                                }`}>
-                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                                            <div
+                                                className={`max-w-[85%] p-5 rounded-3xl leading-relaxed text-[15px] font-medium ${
+                                                    msg.sender === 'user'
+                                                        ? 'bg-indigo-600 text-white rounded-tr-none shadow-xl shadow-indigo-100'
+                                                        : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none shadow-sm shadow-slate-100/50'
+                                                }`}
+                                            >
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                    {msg.content}
+                                                </ReactMarkdown>
                                             </div>
                                         </motion.div>
                                     ))}
@@ -317,15 +372,16 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
 
                                 <div className="p-8 space-y-6 bg-white/50 border-t border-slate-100">
                                     <div className="flex flex-wrap gap-2">
-                                        {messages.length < 3 && quickChips.map((chip, i) => (
-                                            <button
-                                                key={i}
-                                                onClick={() => setInput(chip.query)}
-                                                className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-full text-xs font-bold hover:border-indigo-400 hover:text-indigo-600 hover:shadow-md transition-all active:scale-95"
-                                            >
-                                                {chip.label}
-                                            </button>
-                                        ))}
+                                        {messages.length < 3 &&
+                                            quickChips.map((chip, i) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => setInput(chip.query)}
+                                                    className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-full text-xs font-bold hover:border-indigo-400 hover:text-indigo-600 hover:shadow-md transition-all active:scale-95"
+                                                >
+                                                    {chip.label}
+                                                </button>
+                                            ))}
                                     </div>
 
                                     <form onSubmit={handleSendMessage} className="relative group">
@@ -351,8 +407,12 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
                             {/* Right Panel: Live Preview */}
                             <div className="flex-1 bg-white p-10 flex flex-col">
                                 <div className="mb-10">
-                                    <h3 className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-2">Live Extraction</h3>
-                                    <h2 className="text-3xl font-black text-slate-800 tracking-tight">Draft View</h2>
+                                    <h3 className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-2">
+                                        Live Extraction
+                                    </h3>
+                                    <h2 className="text-3xl font-black text-slate-800 tracking-tight">
+                                        Draft View
+                                    </h2>
                                 </div>
 
                                 <div className="flex-1 bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-100 p-8 relative overflow-hidden">
@@ -361,7 +421,10 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
                                             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-300 mb-4 animate-pulse">
                                                 <HiViewGrid size={32} />
                                             </div>
-                                            <p className="text-slate-400 font-bold italic">Start chatting to see your task take shape in real-time...</p>
+                                            <p className="text-slate-400 font-bold italic">
+                                                Start chatting to see your task take shape in
+                                                real-time...
+                                            </p>
                                         </div>
                                     ) : (
                                         <motion.div
@@ -374,8 +437,12 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
                                                     {getTaskIcon(agentState.partialTask.type)}
                                                 </div>
                                                 <div>
-                                                    <span className="text-[10px] font-black uppercase text-indigo-500 tracking-widest">{agentState.partialTask.type}</span>
-                                                    <h4 className="text-xl font-black text-slate-800 line-clamp-2">{agentState.partialTask.title}</h4>
+                                                    <span className="text-[10px] font-black uppercase text-indigo-500 tracking-widest">
+                                                        {agentState.partialTask.type}
+                                                    </span>
+                                                    <h4 className="text-xl font-black text-slate-800 line-clamp-2">
+                                                        {agentState.partialTask.title}
+                                                    </h4>
                                                 </div>
                                             </div>
 
@@ -388,9 +455,14 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
                                             )}
 
                                             <div className="space-y-4">
-                                                <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Extracted Details</h5>
+                                                <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                                    Extracted Details
+                                                </h5>
                                                 <div className="bg-white overflow-hidden rounded-[2rem] border border-slate-100 shadow-sm p-6">
-                                                    <TaskDataRenderer type={agentState.partialTask.type} data={agentState.partialTask.data} />
+                                                    <TaskDataRenderer
+                                                        type={agentState.partialTask.type}
+                                                        data={agentState.partialTask.data}
+                                                    />
                                                 </div>
                                             </div>
 
@@ -401,7 +473,12 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
                                                             <HiClock size={16} />
                                                         </div>
                                                         <span className="text-xs font-bold text-amber-700 italic">
-                                                            {agentState.missingFields.length} more detail{agentState.missingFields.length > 1 ? 's' : ''} needed...
+                                                            {agentState.missingFields.length} more
+                                                            detail
+                                                            {agentState.missingFields.length > 1
+                                                                ? 's'
+                                                                : ''}{' '}
+                                                            needed...
                                                         </span>
                                                     </div>
                                                 </div>
@@ -427,9 +504,13 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
                     <div>
                         <div className="flex items-center gap-2 mb-2">
                             <div className="w-2 h-8 bg-indigo-600 rounded-full" />
-                            <h1 className="text-5xl font-black text-slate-800 tracking-tight">Focus</h1>
+                            <h1 className="text-5xl font-black text-slate-800 tracking-tight">
+                                Focus
+                            </h1>
                         </div>
-                        <p className="text-slate-500 font-bold text-lg tracking-tight">Organization meets intuition.</p>
+                        <p className="text-slate-500 font-bold text-lg tracking-tight">
+                            Organization meets intuition.
+                        </p>
                     </div>
                     <button
                         onClick={() => setIsCreating(true)}
@@ -448,11 +529,15 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
                             <div className="w-32 h-32 bg-white rounded-[3rem] shadow-sm flex items-center justify-center text-slate-200 mx-auto mb-8 border border-slate-50">
                                 <HiViewGrid size={64} />
                             </div>
-                            <h3 className="text-3xl font-black text-slate-800 mb-2 tracking-tight">Silence is gold, but planning is silver.</h3>
-                            <p className="text-slate-400 font-bold text-lg">Use the command center to populate your universe.</p>
+                            <h3 className="text-3xl font-black text-slate-800 mb-2 tracking-tight">
+                                Silence is gold, but planning is silver.
+                            </h3>
+                            <p className="text-slate-400 font-bold text-lg">
+                                Use the command center to populate your universe.
+                            </p>
                         </div>
                     )}
-                    {tasks.map(task => (
+                    {tasks.map((task) => (
                         <motion.div
                             layout
                             key={task.id}
@@ -465,7 +550,9 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
                                     <div className="p-3 bg-slate-50 rounded-2xl group-hover:bg-indigo-50 transition-colors">
                                         {getTaskIcon(task.type)}
                                     </div>
-                                    <span className="text-[10px] font-black uppercase text-indigo-400 tracking-[0.2em]">{task.type}</span>
+                                    <span className="text-[10px] font-black uppercase text-indigo-400 tracking-[0.2em]">
+                                        {task.type}
+                                    </span>
                                 </div>
                                 <button
                                     onClick={(e) => {
@@ -479,8 +566,14 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
                             </div>
 
                             <div className="space-y-2 mb-8">
-                                <h3 className="text-2xl font-black text-slate-800 leading-tight tracking-tight leading-none">{task.title}</h3>
-                                {task.summary && <p className="text-slate-500 font-medium line-clamp-2 text-sm leading-relaxed">{task.summary}</p>}
+                                <h3 className="text-2xl font-black text-slate-800 leading-tight tracking-tight leading-none">
+                                    {task.title}
+                                </h3>
+                                {task.summary && (
+                                    <p className="text-slate-500 font-medium line-clamp-2 text-sm leading-relaxed">
+                                        {task.summary}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="bg-slate-50 rounded-[2rem] p-6 border border-slate-100">

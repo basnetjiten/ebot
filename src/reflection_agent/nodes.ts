@@ -1,17 +1,19 @@
 import { AgentStateType } from './state';
 import { ReflectionAnalyzer } from './tools';
-import { START, END } from '@langchain/langgraph';
+import { END } from '@langchain/langgraph';
 import { Todo } from '../types';
 import { HumanMessage, AIMessage } from '@langchain/core/messages';
 
 // Node for processing reflection entries
-export const reflectionProcessor = async (state: AgentStateType): Promise<Partial<AgentStateType>> => {
+export const reflectionProcessor = async (
+  state: AgentStateType,
+): Promise<Partial<AgentStateType>> => {
   console.log('Processing reflection entry for user:', state.userId);
 
   if (!state.currentReflection?.content) {
     return {
       error: 'No reflection content provided',
-      currentStep: 'error'
+      currentStep: 'error',
     };
   }
 
@@ -21,7 +23,7 @@ export const reflectionProcessor = async (state: AgentStateType): Promise<Partia
   if (!state.isFinishing) {
     return {
       messages: [new HumanMessage(content)],
-      currentStep: 'initial'
+      currentStep: 'initial',
     };
   }
 
@@ -29,7 +31,7 @@ export const reflectionProcessor = async (state: AgentStateType): Promise<Partia
     // Extract todos from the reflection
     const todos = await ReflectionAnalyzer.extractTodos(state.messages);
 
-    const suggestedTodos: Todo[] = todos.map(todo => ({
+    const suggestedTodos: Todo[] = todos.map((todo) => ({
       id: crypto.randomUUID(),
       userId: state.userId,
       title: todo,
@@ -37,18 +39,18 @@ export const reflectionProcessor = async (state: AgentStateType): Promise<Partia
       createdAt: new Date(),
       description: '',
       priority: 'medium',
-      sourceReflectionId: state.currentReflection?.id
+      sourceReflectionId: state.currentReflection?.id,
     }));
 
     return {
       suggestedTodos: suggestedTodos,
       messages: [new HumanMessage(content)],
-      currentStep: 'keyword_analysis'
+      currentStep: 'keyword_analysis',
     };
   } catch (error) {
     return {
       error: `Failed to process reflection: ${error}`,
-      currentStep: 'error'
+      currentStep: 'error',
     };
   }
 };
@@ -60,7 +62,7 @@ export const keywordAnalyzer = async (state: AgentStateType): Promise<Partial<Ag
   if (!state.currentReflection?.content) {
     return {
       error: 'No reflection content available for keyword analysis',
-      currentStep: 'error'
+      currentStep: 'error',
     };
   }
 
@@ -69,16 +71,15 @@ export const keywordAnalyzer = async (state: AgentStateType): Promise<Partial<Ag
 
     return {
       keywordAnalysis,
-      currentStep: 'summary_generation'
+      currentStep: 'summary_generation',
     };
   } catch (error) {
     return {
       error: `Failed to analyze keywords: ${error}`,
-      currentStep: 'error'
+      currentStep: 'error',
     };
   }
 };
-
 
 // Node for generating summary
 export const summaryGenerator = async (state: AgentStateType): Promise<Partial<AgentStateType>> => {
@@ -87,7 +88,7 @@ export const summaryGenerator = async (state: AgentStateType): Promise<Partial<A
   if (!state.currentReflection?.content) {
     return {
       error: 'No reflection content available for summary',
-      currentStep: 'error'
+      currentStep: 'error',
     };
   }
 
@@ -96,25 +97,31 @@ export const summaryGenerator = async (state: AgentStateType): Promise<Partial<A
 
     return {
       summary,
-      currentStep: 'feedback_generation'
+      currentStep: 'feedback_generation',
     };
   } catch (error) {
     return {
       error: `Failed to generate summary: ${error}`,
-      currentStep: 'error'
+      currentStep: 'error',
     };
   }
 };
 
-
 // Node for generating feedback
-export const feedbackGenerator = async (state: AgentStateType): Promise<Partial<AgentStateType>> => {
-  console.log('Generating feedback for reflection:', state.currentReflection?.id, 'isFinishing:', state.isFinishing);
+export const feedbackGenerator = async (
+  state: AgentStateType,
+): Promise<Partial<AgentStateType>> => {
+  console.log(
+    'Generating feedback for reflection:',
+    state.currentReflection?.id,
+    'isFinishing:',
+    state.isFinishing,
+  );
 
   if (!state.currentReflection?.content) {
     return {
       error: 'Missing reflection content or keyword analysis for feedback generation',
-      currentStep: 'error'
+      currentStep: 'error',
     };
   }
 
@@ -122,15 +129,18 @@ export const feedbackGenerator = async (state: AgentStateType): Promise<Partial<
     const feedback = await ReflectionAnalyzer.generateFeedback(
       state.currentReflection.content,
       state.currentReflection.type,
-      state.messages
+      state.messages,
     );
     // If the reflection suggests a need for external information, route to the web search node.
-    if (feedback.toLowerCase().includes('search for') || feedback.toLowerCase().includes('look up')) {
+    if (
+      feedback.toLowerCase().includes('search for') ||
+      feedback.toLowerCase().includes('look up')
+    ) {
       return {
         feedback,
         needsWebSearch: true, // Set the flag for web search
         query: state.currentReflection.content, // Use reflection content as the search query
-        currentStep: 'web_search' // Route to the web search node
+        currentStep: 'web_search', // Route to the web search node
       };
     }
 
@@ -138,19 +148,19 @@ export const feedbackGenerator = async (state: AgentStateType): Promise<Partial<
     if (!state.isFinishing) {
       return {
         feedback,
-        currentStep: 'feedback_generation'
+        currentStep: 'feedback_generation',
       };
     }
 
     // Otherwise, proceed to completion for full analysis
     return {
       feedback,
-      currentStep: 'completion'
+      currentStep: 'completion',
     };
   } catch (error) {
     return {
       error: `Failed to generate feedback: ${error}`,
-      currentStep: 'error'
+      currentStep: 'error',
     };
   }
 };
@@ -160,24 +170,31 @@ export const completionProcessor = (state: AgentStateType): Partial<AgentStateTy
   console.log('Completing reflection analysis for:', state.currentReflection?.id);
 
   // Update the reflection with analysis results
-  const updatedReflection = state.currentReflection ? {
-    ...state.currentReflection,
-    keywords: state.keywordAnalysis,
-    summary: state.summary,
-    feedback: state.feedback
-  } : null;
+  const updatedReflection = state.currentReflection
+    ? {
+      ...state.currentReflection,
+      keywords: state.keywordAnalysis,
+      summary: state.summary,
+      feedback: state.feedback,
+    }
+    : null;
 
   return {
     currentReflection: updatedReflection,
     messages: [new AIMessage(state.feedback)],
     analysisComplete: true,
-    currentStep: 'completed'
+    currentStep: 'completed',
   };
 };
 
 // Decision node for routing the reflection analysis workflow
 export const decisionRouter = (state: AgentStateType) => {
-  console.log('Routing reflection analysis, current step:', state.currentStep, 'isFinishing:', state.isFinishing);
+  console.log(
+    'Routing reflection analysis, current step:',
+    state.currentStep,
+    'isFinishing:',
+    state.isFinishing,
+  );
 
   if (state.needsWebSearch) {
     return 'webSearch';
@@ -219,5 +236,3 @@ export const decisionRouter = (state: AgentStateType) => {
       return 'reflectionProcessor';
   }
 };
-
-

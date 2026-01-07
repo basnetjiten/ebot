@@ -18,9 +18,9 @@ export class TaskStore {
     private async connect() {
         try {
             await this.client.connect();
-            // Using a specific DB name for tasks if we want complete separation, 
-            // or same DB but different connection instance. 
-            // The prompt asked for "separate entity and db connections". 
+            // Using a specific DB name for tasks if we want complete separation,
+            // or same DB but different connection instance.
+            // The prompt asked for "separate entity and db connections".
             // We will use the configured DB name but this is a distinct connection.
             this.db = this.client.db(config.mongodb.dbName);
             this.tasks = this.db.collection<Task>('ebot_tasks');
@@ -45,13 +45,13 @@ export class TaskStore {
         const doc = {
             ...taskData,
             _id: new ObjectId(),
-            createdAt: new Date()
+            createdAt: new Date(),
         };
         await this.tasks!.insertOne(doc as any);
         return {
             ...taskData,
             id: doc._id.toHexString(),
-            createdAt: doc.createdAt
+            createdAt: doc.createdAt,
         };
     }
 
@@ -61,7 +61,7 @@ export class TaskStore {
             .sort({ createdAt: -1 }) // Sort by newest first by default
             .toArray();
 
-        return results.map(doc => ({
+        return results.map((doc) => ({
             ...doc,
             id: (doc as any)._id.toHexString(),
         })) as unknown as Task[];
@@ -72,12 +72,12 @@ export class TaskStore {
         const result = await this.tasks!.findOneAndUpdate(
             { _id: new ObjectId(taskId) } as any,
             { $set: { status } },
-            { returnDocument: 'after' }
+            { returnDocument: 'after' },
         );
         if (!result) return null;
         return {
             ...result,
-            id: (result as any)._id.toHexString()
+            id: (result as any)._id.toHexString(),
         } as unknown as Task;
     }
 

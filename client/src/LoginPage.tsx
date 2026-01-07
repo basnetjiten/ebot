@@ -20,7 +20,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         setError(null);
         try {
             const response = await axios.post('http://localhost:3000/api/auth/login', {
-                email: loginEmail.toLowerCase().trim()
+                email: loginEmail.toLowerCase().trim(),
             });
             const user = response.data.data;
             onLoginSuccess(user.id);
@@ -57,7 +57,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     </div>
 
                     <h1 className="text-4xl font-black text-slate-800 tracking-tight mb-3">
-                        Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Reflectly</span>
+                        Welcome to{' '}
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                            Reflectly
+                        </span>
                     </h1>
                     <p className="text-slate-500 font-medium text-lg max-w-xs leading-relaxed">
                         Your intelligent companion for daily growth and reflection.
@@ -66,7 +69,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
                 <form onSubmit={handleLogin} className="space-y-8">
                     <div>
-                        <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3 ml-2">Email Address</label>
+                        <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3 ml-2">
+                            Email Address
+                        </label>
                         <div className="relative group">
                             <input
                                 type="email"

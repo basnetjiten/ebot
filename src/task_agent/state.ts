@@ -1,5 +1,4 @@
 import { Annotation } from '@langchain/langgraph';
-import { Task } from '../types/task';
 
 // Define the state annotation
 export const TaskStateAnnotation = Annotation.Root({
@@ -26,5 +25,5 @@ export const TaskStateAnnotation = Annotation.Root({
     }),
     validationErrors: Annotation<string[] | undefined>({
         reducer: (x, y) => y ?? x,
-    })
+    }),
 });

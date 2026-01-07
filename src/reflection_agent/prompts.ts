@@ -41,7 +41,11 @@ ${history}
 Return only the reflection summary.
 `;
 
-export const getFeedbackPrompt = (history: string, content: string, reflectionType: string) => `You are a warm, practical, conversational assistant — like a trusted colleague who also cares. You are not restricted to reflection-only responses.
+export const getFeedbackPrompt = (
+    history: string,
+    content: string,
+    reflectionType: string,
+) => `You are a warm, practical, conversational assistant — like a trusted colleague who also cares. You are not restricted to reflection-only responses.
 
 ## Instructions:
 - Keep responses brief and to the point

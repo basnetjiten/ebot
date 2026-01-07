@@ -1,91 +1,91 @@
-import { BaseMessage, BaseMessageLike } from "@langchain/core/messages";
-import { Annotation, messagesStateReducer } from "@langchain/langgraph";
-import { ReflectionEntry, Todo } from "../types";
+import { BaseMessage, BaseMessageLike } from '@langchain/core/messages';
+import { Annotation, messagesStateReducer } from '@langchain/langgraph';
+import { ReflectionEntry, Todo } from '../types';
 
 export const StateAnnotation = Annotation.Root({
-  messages: Annotation<BaseMessage[], BaseMessageLike[]>({
-    reducer: messagesStateReducer,
-    default: () => [],
-  }),
+    messages: Annotation<BaseMessage[], BaseMessageLike[]>({
+        reducer: messagesStateReducer,
+        default: () => [],
+    }),
 
-  // User context
-  userId: Annotation<string>({
-    reducer: (left: string, right: string) => right,
-    default: () => "",
-  }),
+    // User context
+    userId: Annotation<string>({
+        reducer: (left: string, right: string) => right,
+        default: () => '',
+    }),
 
-  // Reflection data
-  currentReflection: Annotation<ReflectionEntry | null>({
-    reducer: (left: ReflectionEntry | null, right: ReflectionEntry | null) => right,
-    default: () => null,
-  }),
+    // Reflection data
+    currentReflection: Annotation<ReflectionEntry | null>({
+        reducer: (left: ReflectionEntry | null, right: ReflectionEntry | null) => right,
+        default: () => null,
+    }),
 
-  // Analysis results
-  keywordAnalysis: Annotation<string[] | null>({
-    reducer: (left: string[] | null, right: string[] | null) => right,
-    default: () => [],
-  }),
+    // Analysis results
+    keywordAnalysis: Annotation<string[] | null>({
+        reducer: (left: string[] | null, right: string[] | null) => right,
+        default: () => [],
+    }),
 
-  summary: Annotation<string>({
-    reducer: (left: string, right: string) => right,
-    default: () => "",
-  }),
+    summary: Annotation<string>({
+        reducer: (left: string, right: string) => right,
+        default: () => '',
+    }),
 
-  feedback: Annotation<string>({
-    reducer: (left: string, right: string) => right,
-    default: () => "",
-  }),
+    feedback: Annotation<string>({
+        reducer: (left: string, right: string) => right,
+        default: () => '',
+    }),
 
-  // Todo management
-  suggestedTodos: Annotation<Todo[]>({
-    reducer: (left: Todo[], right: Todo[]) => right,
-    default: () => [],
-  }),
+    // Todo management
+    suggestedTodos: Annotation<Todo[]>({
+        reducer: (left: Todo[], right: Todo[]) => right,
+        default: () => [],
+    }),
 
-  createdTodos: Annotation<Todo[]>({
-    reducer: (left: Todo[], right: Todo[]) => right,
-    default: () => [],
-  }),
+    createdTodos: Annotation<Todo[]>({
+        reducer: (left: Todo[], right: Todo[]) => right,
+        default: () => [],
+    }),
 
-  // Web search integration
-  needsWebSearch: Annotation<boolean>({
-    reducer: (left: boolean, right: boolean) => right,
-    default: () => false,
-  }),
+    // Web search integration
+    needsWebSearch: Annotation<boolean>({
+        reducer: (left: boolean, right: boolean) => right,
+        default: () => false,
+    }),
 
-  query: Annotation<string>({
-    reducer: (left: string, right: string) => right,
-    default: () => "",
-  }),
+    query: Annotation<string>({
+        reducer: (left: string, right: string) => right,
+        default: () => '',
+    }),
 
-  searchResults: Annotation<string>({
-    reducer: (left: string, right: string) => right,
-    default: () => "",
-  }),
+    searchResults: Annotation<string>({
+        reducer: (left: string, right: string) => right,
+        default: () => '',
+    }),
 
-  // Processing state
-  currentStep: Annotation<string>({
-    reducer: (left: string, right: string) => right,
-    default: () => "initial",
-  }),
+    // Processing state
+    currentStep: Annotation<string>({
+        reducer: (left: string, right: string) => right,
+        default: () => 'initial',
+    }),
 
-  // Analysis complete flag
-  analysisComplete: Annotation<boolean>({
-    reducer: (left: boolean, right: boolean) => right,
-    default: () => false,
-  }),
+    // Analysis complete flag
+    analysisComplete: Annotation<boolean>({
+        reducer: (left: boolean, right: boolean) => right,
+        default: () => false,
+    }),
 
-  // Flag to control whether to run full analysis (keywords, summary, todos)
-  isFinishing: Annotation<boolean>({
-    reducer: (left: boolean, right: boolean) => right,
-    default: () => false,
-  }),
+    // Flag to control whether to run full analysis (keywords, summary, todos)
+    isFinishing: Annotation<boolean>({
+        reducer: (left: boolean, right: boolean) => right,
+        default: () => false,
+    }),
 
-  // Error handling
-  error: Annotation<string | null>({
-    reducer: (left: string | null, right: string | null) => right,
-    default: () => null,
-  }),
+    // Error handling
+    error: Annotation<string | null>({
+        reducer: (left: string | null, right: string | null) => right,
+        default: () => null,
+    }),
 });
 
 export type AgentStateType = typeof StateAnnotation.State;

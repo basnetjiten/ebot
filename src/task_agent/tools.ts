@@ -1,26 +1,25 @@
-import { SystemMessage, AIMessage } from "@langchain/core/messages";
-import { model } from "../utils/model";
-import { taskStore } from "../storage/task_store";
-import { validateTaskData } from "./schemas";
-import { ParsedTask, generateMissingFieldQuestions } from "./types";
-import { buildSystemPrompt } from "./prompts";
-import { cleanJsonOutput } from "./utils";
-import { Task } from "../types/task";
+import { SystemMessage, AIMessage } from '@langchain/core/messages';
+import { model } from '../utils/model';
+import { taskStore } from '../storage/task_store';
+import { validateTaskData } from './schemas';
+import { ParsedTask, generateMissingFieldQuestions } from './types';
+import { buildSystemPrompt } from './prompts';
+import { cleanJsonOutput } from './utils';
+import { Task } from '../types/task';
 
 export class TaskTools {
-
     static async extractTaskDetails(messages: any[], currentPartialTask: any): Promise<ParsedTask> {
         try {
             const systemPrompt = buildSystemPrompt();
             const userContext = `
-Current partial task state:
-${JSON.stringify(currentPartialTask, null, 2)}
+    Current partial task state:
+    ${JSON.stringify(currentPartialTask, null, 2)}
 
-Extract or update task details from the conversation.`;
+    Extract or update task details from the conversation.`;
 
             const response = await model.invoke([
-                new SystemMessage({ content: systemPrompt + "\n\n" + userContext }),
-                ...messages
+                new SystemMessage({ content: systemPrompt + '\n\n' + userContext }),
+                ...messages,
             ]);
 
             const cleaned = cleanJsonOutput(response.content as string);
@@ -34,7 +33,7 @@ Extract or update task details from the conversation.`;
 
             return extracted;
         } catch (e) {
-            console.error("Error parsing task:", e);
+            console.error('Error parsing task:', e);
             throw e;
         }
     }
@@ -50,7 +49,7 @@ Extract or update task details from the conversation.`;
         // If we only have validation errors (shouldn't happen often)
         if (validationErrors && validationErrors.length > 0) {
             const friendlyErrors = validationErrors
-                .map(err => err.replace('Missing required field: ', ''))
+                .map((err) => err.replace('Missing required field: ', ''))
                 .join(', ');
             return `I'm having a little trouble with some details (${friendlyErrors}). Could you help me fill those in?`;
         }
@@ -65,11 +64,11 @@ Extract or update task details from the conversation.`;
 
     static async generateConfirmationPrompt(task: any): Promise<string> {
         const prompt = `
-You're confirming task details with someone in a friendly way.
+     You're confirming task details with someone in a friendly way.
 
-Task details:
-Title: ${task.title}
-Summary: ${task.summary}
+     Task details:
+     Title: ${task.title}
+     Summary: ${task.summary}
 Details: ${JSON.stringify(task.data, null, 2)}
 
 Create a short, friendly message that:
@@ -100,7 +99,7 @@ Create this task?"
             summary: partialTask.summary,
             type: partialTask.type as any,
             data: partialTask.data || {},
-            status: 'pending'
+            status: 'pending',
         } as any);
     }
 }
