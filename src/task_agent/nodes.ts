@@ -2,12 +2,36 @@ import { AIMessage } from '@langchain/core/messages';
 import { END } from '@langchain/langgraph';
 import { TaskStateAnnotation } from './state';
 import { TaskTools } from './tools';
+import { taskStore } from '../storage/task_store';
 
 // Node: Parse User Request
 export const parseRequestNode = async (state: typeof TaskStateAnnotation.State) => {
     console.log('Parsing request...');
 
     try {
+        // If we are waiting for an email reminder choice, handle it first
+        if (state.isWaitingForEmailChoice && state.lastCreatedTaskId) {
+            const lowerMsg = state.messages[state.messages.length - 1].content.toLowerCase();
+            const isYes = lowerMsg.includes('yes') || lowerMsg.includes('sure') || lowerMsg.includes('ok') || lowerMsg.includes('perfect');
+
+            if (isYes) {
+                await taskStore.updateTask(state.lastCreatedTaskId, { remindViaEmail: true } as any);
+                return {
+                    messages: [new AIMessage("Great! I've turned on email reminders for that task. What else can I help you with?")],
+                    isWaitingForEmailChoice: false,
+                    lastCreatedTaskId: undefined,
+                    partialTask: {},
+                };
+            } else {
+                return {
+                    messages: [new AIMessage("No problem! Is there anything else you'd like to organize today?")],
+                    isWaitingForEmailChoice: false,
+                    lastCreatedTaskId: undefined,
+                    partialTask: {},
+                };
+            }
+        }
+
         const extracted = await TaskTools.extractTaskDetails(state.messages, state.partialTask);
 
         // Merge with existing partial task
@@ -93,10 +117,19 @@ export const saveTaskNode = async (state: typeof TaskStateAnnotation.State) => {
 
     if (state.isComplete) {
         const newTask = await TaskTools.createTask(state.userId, state.partialTask);
+        const isReminder = newTask.type === 'reminder';
+        const needsEmailPrompt = isReminder && !newTask.remindViaEmail;
+
+        let message = `Task "${newTask.title}" created successfully!`;
+        if (needsEmailPrompt) {
+            message += "\n\nWould you like me to also remind you via email?";
+        }
 
         return {
-            messages: [new AIMessage(`Task "${newTask.title}" created successfully!`)],
+            messages: [new AIMessage(message)],
             partialTask: {},
+            lastCreatedTaskId: needsEmailPrompt ? newTask.id : undefined,
+            isWaitingForEmailChoice: needsEmailPrompt,
             isComplete: false,
             isConfirmationPending: false,
         };

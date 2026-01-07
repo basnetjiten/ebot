@@ -10,6 +10,7 @@ export interface BaseTask {
     type: TaskType;
     status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
     metadata?: Record<string, any>; // AI confidence, tags
+    remindViaEmail?: boolean;
     createdAt: Date;
 }
 
@@ -49,6 +50,7 @@ export interface ReminderTask extends BaseTask {
         time: string;
         isRecurring?: boolean;
         recurrencePattern?: string;
+        remindViaEmail?: boolean;
     };
 }
 

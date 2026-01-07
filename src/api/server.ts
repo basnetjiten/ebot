@@ -12,6 +12,7 @@ import {
     getUserSummary,
 } from './routes';
 import taskRoutes from './task_routes';
+import emailRoutes from './email_routes';
 
 const app = express();
 // const PORT = config.port; // Removed as per instruction
@@ -34,6 +35,9 @@ app.get('/api/users/:userId/summary', getUserSummary);
 
 // Task Routes
 app.use('/api/tasks', taskRoutes);
+
+// Email Routes
+app.use('/api/email', emailRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

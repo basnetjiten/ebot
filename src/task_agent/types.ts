@@ -5,6 +5,7 @@ export interface ParsedTask {
     title: string;
     summary: string;
     data: Record<string, any>;
+    remindViaEmail?: boolean;
     conversationalResponse?: string;
     missingFields: Array<{ field: string; reason: string; suggestedQuestion?: string }>;
     validationErrors?: string[];

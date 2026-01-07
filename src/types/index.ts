@@ -30,6 +30,40 @@ export interface User {
         moodTrackingEnabled: boolean;
         summaryFrequency: 'daily' | 'weekly' | 'never';
     };
+    emailAccounts?: EmailAccount[];
+    isGmailConnected?: boolean;
+}
+
+export interface EmailAccount {
+    id: string;
+    email: string;
+    provider: 'gmail' | 'outlook' | 'custom';
+    type: 'smtp_imap' | 'oauth2';
+    imap?: {
+        host: string;
+        port: number;
+        secure: boolean;
+        user: string;
+        pass: string;
+    };
+    smtp?: {
+        host: string;
+        port: number;
+        secure: boolean;
+        user: string;
+        pass: string;
+    };
+    oauth?: OAuthTokens;
+    isConnected: boolean;
+    lastSynced?: Date;
+}
+
+export interface OAuthTokens {
+    accessToken: string;
+    refreshToken: string;
+    expiryDate: number;
+    tokenType: string;
+    scope: string;
 }
 
 export interface MobileAPIResponse<T = any> {
@@ -45,4 +79,14 @@ export interface UserKeyword {
     keyword: string;
     count: number;
     lastSeen: Date;
+}
+
+export interface EmailMessage {
+    id: string;
+    from: string;
+    to: string;
+    subject: string;
+    content: string;
+    timestamp: Date;
+    hasReplied: boolean;
 }

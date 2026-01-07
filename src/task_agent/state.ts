@@ -29,4 +29,10 @@ export const TaskStateAnnotation = Annotation.Root({
     acknowledgement: Annotation<string | undefined>({
         reducer: (x, y) => y ?? x,
     }),
+    lastCreatedTaskId: Annotation<string | undefined>({
+        reducer: (x, y) => y ?? x,
+    }),
+    isWaitingForEmailChoice: Annotation<boolean>({
+        reducer: (x, y) => y ?? x,
+    }),
 });

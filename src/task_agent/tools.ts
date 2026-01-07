@@ -6,6 +6,8 @@ import { ParsedTask, generateMissingFieldQuestions } from './types';
 import { buildSystemPrompt } from './prompts';
 import { cleanJsonOutput } from './utils';
 import { Task } from '../types/task';
+import { EmailService } from '../utils/email';
+import { database } from '../storage/database';
 
 export class TaskTools {
     static async extractTaskDetails(messages: any[], currentPartialTask: any): Promise<ParsedTask> {
@@ -98,13 +100,32 @@ Create this task?"
     }
 
     static async createTask(userId: string, partialTask: any): Promise<Task> {
-        return await taskStore.createTask({
+        const task = await taskStore.createTask({
             userId: userId,
             title: partialTask.title!,
-            summary: partialTask.summary,
+            summary: partialTask.summary || '',
             type: partialTask.type as any,
             data: partialTask.data || {},
+            remindViaEmail: partialTask.remindViaEmail ?? partialTask.data?.remindViaEmail,
             status: 'pending',
         } as any);
+
+        // If it's an email task, try to send it immediately
+        if (partialTask.type === 'email' && partialTask.data) {
+            const { to, subject, body } = partialTask.data;
+            if (to && subject && body) {
+                const accounts = await database.getEmailAccounts(userId);
+                const account = accounts.find((a) => a.isConnected);
+                if (account) {
+                    const success = await EmailService.sendEmail(account, to, subject, body);
+                    if (success) {
+                        await taskStore.updateTaskStatus(task.id, 'completed');
+                        task.status = 'completed';
+                    }
+                }
+            }
+        }
+
+        return task;
     }
 }

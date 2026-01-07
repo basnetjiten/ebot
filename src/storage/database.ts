@@ -1,5 +1,5 @@
 import { MongoClient, Collection, Db } from 'mongodb';
-import { ReflectionEntry, Todo, User, UserKeyword } from '../types';
+import { ReflectionEntry, Todo, User, UserKeyword, EmailAccount } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface IDatabase {
@@ -22,6 +22,14 @@ export interface IDatabase {
     saveKeywords(userId: string, keywords: string[]): Promise<void>;
     getTodosByReflectionId(reflectionId: string): Promise<Todo[]>;
     getUserKeywords(userId: string): Promise<UserKeyword[]>;
+    addEmailAccount(userId: string, account: Omit<EmailAccount, 'id'>): Promise<EmailAccount>;
+    getEmailAccounts(userId: string): Promise<EmailAccount[]>;
+    updateEmailAccount(
+        userId: string,
+        accountId: string,
+        updates: Partial<EmailAccount>,
+    ): Promise<EmailAccount | null>;
+    deleteEmailAccount(userId: string, accountId: string): Promise<boolean>;
     getLatestReflection(userId: string): Promise<ReflectionEntry | null>;
 }
 
@@ -187,6 +195,62 @@ export class InMemoryDatabase implements IDatabase {
             count: k.count,
             lastSeen: k.lastSeen,
         }));
+    }
+
+    // Email account operations
+    async addEmailAccount(userId: string, accountData: Omit<EmailAccount, 'id'>): Promise<EmailAccount> {
+        const user = this.users.get(userId);
+        if (!user) throw new Error('User not found');
+
+        const account: EmailAccount = {
+            id: this.generateId(),
+            ...accountData,
+        };
+
+        user.emailAccounts = [...(user.emailAccounts || []), account];
+        if (account.provider === 'gmail') {
+            user.isGmailConnected = true;
+        }
+        this.users.set(userId, user);
+        return account;
+    }
+
+    async getEmailAccounts(userId: string): Promise<EmailAccount[]> {
+        const user = this.users.get(userId);
+        return user?.emailAccounts || [];
+    }
+
+    async updateEmailAccount(
+        userId: string,
+        accountId: string,
+        updates: Partial<EmailAccount>,
+    ): Promise<EmailAccount | null> {
+        const user = this.users.get(userId);
+        if (!user || !user.emailAccounts) return null;
+
+        const index = user.emailAccounts.findIndex((a) => a.id === accountId);
+        if (index === -1) return null;
+
+        user.emailAccounts[index] = { ...user.emailAccounts[index], ...updates };
+        this.users.set(userId, user);
+        return user.emailAccounts[index];
+    }
+
+    async deleteEmailAccount(userId: string, accountId: string): Promise<boolean> {
+        const user = this.users.get(userId);
+        if (!user || !user.emailAccounts) return false;
+
+        const initialLength = user.emailAccounts.length;
+        user.emailAccounts = user.emailAccounts.filter((a) => a.id !== accountId);
+
+        if (user.emailAccounts.length !== initialLength) {
+            // Check if any gmail accounts remain
+            const stillHasGmail = user.emailAccounts.some((a) => a.provider === 'gmail');
+            user.isGmailConnected = stillHasGmail;
+            this.users.set(userId, user);
+            return true;
+        }
+        return false;
     }
 
     async getLatestReflection(userId: string): Promise<ReflectionEntry | null> {
@@ -404,6 +468,78 @@ export class MongoDatabase implements IDatabase {
             .sort({ count: -1 })
             .toArray();
         return results as UserKeyword[];
+    }
+
+    // Email account operations
+    async addEmailAccount(userId: string, accountData: Omit<EmailAccount, 'id'>): Promise<EmailAccount> {
+        await this.ensureConnection();
+        const account: EmailAccount = {
+            id: uuidv4(),
+            ...accountData,
+        };
+
+        const updateDoc: any = { $push: { emailAccounts: account } };
+        if (account.provider === 'gmail') {
+            updateDoc.$set = { isGmailConnected: true };
+        }
+
+        await this.users!.updateOne({ id: userId } as any, updateDoc, { upsert: true });
+
+        return account;
+    }
+
+    async getEmailAccounts(userId: string): Promise<EmailAccount[]> {
+        await this.ensureConnection();
+        const user = await this.users!.findOne({ id: userId } as any);
+        return user?.emailAccounts || [];
+    }
+
+    async updateEmailAccount(
+        userId: string,
+        accountId: string,
+        updates: Partial<EmailAccount>,
+    ): Promise<EmailAccount | null> {
+        await this.ensureConnection();
+
+        // MongoDB positional operator to update specific element in array
+        const updateDoc: any = {};
+        for (const [key, value] of Object.entries(updates)) {
+            updateDoc[`emailAccounts.$.${key}`] = value;
+        }
+
+        const result = await this.users!.findOneAndUpdate(
+            { id: userId, 'emailAccounts.id': accountId } as any,
+            { $set: updateDoc } as any,
+            { returnDocument: 'after' },
+        );
+
+        if (!result) return null;
+        const updatedUser = result as User;
+        return updatedUser.emailAccounts?.find((a) => a.id === accountId) || null;
+    }
+
+    async deleteEmailAccount(userId: string, accountId: string): Promise<boolean> {
+        await this.ensureConnection();
+
+        // Remove the account
+        const result = await this.users!.updateOne(
+            { id: userId } as any,
+            { $pull: { emailAccounts: { id: accountId } } } as any,
+        );
+
+        if (result.modifiedCount > 0) {
+            // Check if any gmail accounts remain to update the flag
+            const user = await this.getUser(userId);
+            if (user) {
+                const stillHasGmail = user.emailAccounts?.some(a => a.provider === 'gmail') || false;
+                await this.users!.updateOne(
+                    { id: userId } as any,
+                    { $set: { isGmailConnected: stillHasGmail } } as any
+                );
+            }
+            return true;
+        }
+        return false;
     }
 
     async getLatestReflection(userId: string): Promise<ReflectionEntry | null> {

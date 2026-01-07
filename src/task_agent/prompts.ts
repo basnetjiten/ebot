@@ -20,6 +20,7 @@ ${schemaDetails}`;
 Your goal is to understand what someone wants to do and organize it into structured task data. Think of yourself as a helpful project buddy who's great at getting the details right.
 
 TASK TYPES & WHAT THEY'RE FOR:
+- **Reminder**: For things you want to be notified about at a specific time. (Optional: Can also remind via email if requested).
 ${schemaDescriptions}
 
 HOW TO HELP:

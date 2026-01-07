@@ -88,6 +88,19 @@ export const TASK_SCHEMAS = {
                 items: { type: 'enum', values: ['5min', '10min', '30min', '1hour'] },
             },
             priority: { type: 'enum', values: ['low', 'medium', 'high', 'urgent'] },
+            remindViaEmail: { type: 'boolean' },
+        },
+    },
+    email: {
+        required: ['to', 'subject', 'body'],
+        optional: ['cc', 'bcc', 'attachments'],
+        schema: {
+            to: { type: 'string', pattern: 'email', required: true },
+            subject: { type: 'string', maxLength: 200, required: true },
+            body: { type: 'string', maxLength: 5000, required: true },
+            cc: { type: 'array', items: 'string' },
+            bcc: { type: 'array', items: 'string' },
+            attachments: { type: 'array', items: 'string' },
         },
     },
 } as const;

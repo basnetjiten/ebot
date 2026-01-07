@@ -68,10 +68,14 @@ export class TaskStore {
     }
 
     async updateTaskStatus(taskId: string, status: Task['status']): Promise<Task | null> {
+        return this.updateTask(taskId, { status });
+    }
+
+    async updateTask(taskId: string, updates: Partial<Task>): Promise<Task | null> {
         await this.ensureConnection();
         const result = await this.tasks!.findOneAndUpdate(
             { _id: new ObjectId(taskId) } as any,
-            { $set: { status } },
+            { $set: updates },
             { returnDocument: 'after' },
         );
         if (!result) return null;

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { taskAgent } from '../task_agent';
+import { taskAgent } from '../task_agent/index';
 import { taskStore } from '../storage/task_store';
 import { HumanMessage, AIMessage } from '@langchain/core/messages';
 
