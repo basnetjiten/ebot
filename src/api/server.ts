@@ -5,52 +5,39 @@ import {
     submitReflection,
     getReflectionHistory,
     updateTodoStatus,
+    deleteReflection,
     getUserTodos,
     getTodosByReflection,
     loginUser,
-    getUserSummary,
-    deleteReflection
+    getUserSummary
 } from './routes';
+import taskRoutes from './task_routes';
 
 const app = express();
-const PORT = config.port;
+// const PORT = config.port; // Removed as per instruction
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// API Routes
-app.post('/api/login', loginUser);
+// Routes
 app.post('/api/reflections', submitReflection);
-app.get('/api/reflections/:userId', getReflectionHistory);
-app.put('/api/todos/:todoId', updateTodoStatus);
-app.get('/api/todos/:userId', getUserTodos);
-app.get('/api/reflections/:reflectionId/todos', getTodosByReflection);
-app.get('/api/users/:userId/summary', getUserSummary);
+app.get('/api/users/:userId/reflections', getReflectionHistory); // Changed path
 app.delete('/api/reflections/:reflectionId', deleteReflection);
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-    res.json({ status: 'healthy', timestamp: new Date() });
-});
+app.get('/api/users/:userId/todos', getUserTodos); // Changed path
+app.get('/api/reflections/:reflectionId/todos', getTodosByReflection);
+app.put('/api/todos/:todoId', updateTodoStatus);
 
-// Root endpoint
-app.get('/', (req, res) => {
-    res.json({
-        name: 'Reflection Agent API',
-        version: '1.0.0',
-        description: 'LangGraph-based reflection analysis API for mobile apps',
-        endpoints: {
-            reflections: {
-                'POST /api/reflections': 'Submit a reflection for analysis',
-                'GET /api/reflections/:userId': 'Get user reflection history'
-            },
-            todos: {
-                'PUT /api/todos/:todoId': 'Update todo status',
-                'GET /api/todos/:userId': 'Get user todos'
-            }
-        }
-    });
+app.post('/api/auth/login', loginUser); // Changed path
+app.get('/api/users/:userId/summary', getUserSummary);
+
+// Task Routes
+app.use('/api/tasks', taskRoutes);
+
+// Health check
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date() });
 });
 
 // Error handling middleware
@@ -73,10 +60,10 @@ app.use((req, res) => {
 });
 
 export const startServer = () => {
-    app.listen(PORT, () => {
-        console.log(`Reflection Agent API server running on port ${PORT}`);
-        console.log(`Health check: http://localhost:${PORT}/health`);
-        console.log(`API docs: http://localhost:${PORT}/`);
+    app.listen(config.port, () => {
+        console.log(`Reflection Agent API server running on port ${config.port}`);
+        console.log(`Health check: http://localhost:${config.port}/health`);
+        console.log(`API docs: http://localhost:${config.port}/`);
     });
 };
 

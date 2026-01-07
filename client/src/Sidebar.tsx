@@ -61,6 +61,16 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <HiDesktopComputer size={20} className={location.pathname === '/dashboard' ? 'text-white/90' : 'group-hover:text-fuchsia-500 transition-colors'} />
                         <span className="font-semibold tracking-wide">Dashboard</span>
                     </Link>
+                    <Link
+                        to="/tasks"
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group ${location.pathname === '/tasks'
+                            ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/25'
+                            : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                            }`}
+                    >
+                        <HiCheck size={20} className={location.pathname === '/tasks' ? 'text-white/90' : 'group-hover:text-emerald-500 transition-colors'} />
+                        <span className="font-semibold tracking-wide">Tasks</span>
+                    </Link>
                 </nav>
             </div>
 

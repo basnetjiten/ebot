@@ -6,6 +6,7 @@ import Sidebar from './Sidebar';
 import DashboardPage from './DashboardPage';
 import ReflectionPage from './ReflectionPage';
 import LoginPage from './LoginPage';
+import TaskPage from './TaskPage';
 
 function App() {
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -318,6 +319,7 @@ function App() {
               onDeleteReflection={handleDeleteReflection}
             />
           } />
+          {userId && <Route path="/tasks" element={<TaskPage userId={userId} />} />}
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>

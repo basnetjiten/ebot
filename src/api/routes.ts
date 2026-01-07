@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { compiledAgent } from '../agent';
+import { compiledAgent } from '../reflection_agent/index';
 import { MobileAPIResponse, ReflectionEntry } from '../types';
 import { database } from '../storage/database';
 

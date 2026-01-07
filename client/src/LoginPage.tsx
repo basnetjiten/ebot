@@ -19,7 +19,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         setIsLoggingIn(true);
         setError(null);
         try {
-            const response = await axios.post('http://localhost:3000/api/login', {
+            const response = await axios.post('http://localhost:3000/api/auth/login', {
                 email: loginEmail.toLowerCase().trim()
             });
             const user = response.data.data;
