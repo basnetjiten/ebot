@@ -113,13 +113,13 @@ const TaskDataRenderer = ({ type, data }: { type: TaskType, data: any }) => {
 
 const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
     const [tasks, setTasks] = useState<Task[]>([]);
-    const [viewMode, setViewMode] = useState<'list' | 'create'>('list');
+    const [isCreating, setIsCreating] = useState(false);
+    const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
 
     // Chat state
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    // Persist agent state across chat turns (for this session)
     const [agentState, setAgentState] = useState<any>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -128,10 +128,10 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
     }, [userId]);
 
     useEffect(() => {
-        if (viewMode === 'create' && messages.length === 0) {
-            setMessages([{ sender: 'bot', content: "Hi! I can create Todos, Events, Habits, or Reminders. What's on your mind?" }]);
+        if (isCreating && messages.length === 0) {
+            setMessages([{ sender: 'bot', content: "Hey! I'm your task buddy. Tell me about something you want to schedule, build a habit for, or just get done!" }]);
         }
-    }, [viewMode]);
+    }, [isCreating]);
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -146,13 +146,14 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
         }
     };
 
-    const handleSendMessage = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!input.trim() || isSubmitting) return;
+    const handleSendMessage = async (e: React.FormEvent | string) => {
+        if (typeof e !== 'string') e.preventDefault();
+        const userMsg = typeof e === 'string' ? e : input;
 
-        const userMsg = input;
+        if (!userMsg.trim() || isSubmitting) return;
+
         setMessages(prev => [...prev, { sender: 'user', content: userMsg }]);
-        setInput('');
+        if (typeof e !== 'string') setInput('');
         setIsSubmitting(true);
 
         try {
@@ -174,148 +175,323 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
                     }, 1000);
                 }
             }
-
         } catch (error) {
             console.error(error);
-            setMessages(prev => [...prev, { sender: 'bot', content: "Sorry, something went wrong." }]);
+            setMessages(prev => [...prev, { sender: 'bot', content: "Oops, something went wrong on my end." }]);
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const handleDeleteTask = async (id: string) => {
-        if (!confirm("Delete this task?")) return;
+    const handleDeleteTask = async () => {
+        if (!taskToDelete) return;
         try {
-            await axios.delete(`http://localhost:3000/api/tasks/${id}`);
+            await axios.delete(`http://localhost:3000/api/tasks/${taskToDelete}`);
+            setTaskToDelete(null);
             fetchTasks();
-        } catch (e) { console.error(e) }
+        } catch (e) {
+            console.error("Delete failed", e);
+            setTaskToDelete(null);
+        }
     };
 
     const handleFinishCreation = () => {
-        setViewMode('list');
+        setIsCreating(false);
         setMessages([]);
         setAgentState(null);
         fetchTasks();
     };
 
+    const quickChips = [
+        { label: "📅 Schedule Meeting", query: "Schedule a team meeting for tomorrow at 2pm" },
+        { label: "✅ Daily Habit", query: "I want to start drinking 3L of water every day" },
+        { label: "🔔 Set Reminder", query: "Remind me to call the dentist in 1 hour" },
+        { label: "📝 New Todo", query: "Add a task to buy groceries today" }
+    ];
+
     return (
         <div className="flex-1 bg-slate-50 min-h-screen p-8 overflow-y-auto relative font-sans">
-            <header className="mb-8 flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-black text-slate-800 tracking-tight">Tasks</h1>
-                    <p className="text-slate-500 font-medium">Create Todos, Events, Habits & Reminders</p>
-                </div>
-                {viewMode === 'list' ? (
-                    <button
-                        onClick={() => setViewMode('create')}
-                        className="flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 hover:shadow-indigo-300 hover:-translate-y-1 transition-all"
-                    >
-                        <HiPlus size={20} /> New Task
-                    </button>
-                ) : (
-                    <button
-                        onClick={handleFinishCreation}
-                        className="px-5 py-3 bg-white text-slate-600 border border-slate-200 rounded-xl font-bold hover:bg-slate-50 transition-all"
-                    >
-                        Back to List
-                    </button>
-                )}
-            </header>
-
-            <AnimatePresence mode="wait">
-                {viewMode === 'list' ? (
+            {/* Delete Confirmation Modal */}
+            <AnimatePresence>
+                {taskToDelete && (
                     <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md"
                     >
-                        {tasks.length === 0 && (
-                            <div className="col-span-full py-20 text-center">
-                                <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-300 mx-auto mb-4">
-                                    <HiViewGrid size={40} />
-                                </div>
-                                <h3 className="text-xl font-bold text-slate-700">No tasks yet</h3>
-                                <p className="text-slate-500">Chat with AI to create your first task.</p>
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="bg-white rounded-[2.5rem] p-10 max-w-sm w-full shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-100 text-center"
+                        >
+                            <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 mb-6 mx-auto">
+                                <HiTrash size={40} />
                             </div>
-                        )}
-                        {tasks.map(task => (
-                            <div key={task.id} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group relative">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="flex items-center gap-2">
-                                        {getTaskIcon(task.type)}
-                                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${task.type === 'event' ? 'border-purple-200 text-purple-600 bg-purple-50' :
-                                                task.type === 'habit' ? 'border-amber-200 text-amber-600 bg-amber-50' :
-                                                    task.type === 'reminder' ? 'border-rose-200 text-rose-600 bg-rose-50' :
-                                                        'border-blue-200 text-blue-600 bg-blue-50'
-                                            }`}>
-                                            {task.type}
-                                        </span>
-                                    </div>
-                                    <button onClick={() => handleDeleteTask(task.id)} className="text-slate-300 hover:text-rose-500 transition-colors">
-                                        <HiTrash size={18} />
-                                    </button>
-                                </div>
-                                <h3 className="text-lg font-bold text-slate-800 mb-1">{task.title}</h3>
-                                {task.summary && <p className="text-sm text-slate-500 mb-4 line-clamp-2">{task.summary}</p>}
-
-                                <div className="mt-2 border-t border-slate-50 pt-2 bg-slate-50/50 -mx-6 px-6 pb-2 -mb-6 rounded-b-2xl">
-                                    <TaskDataRenderer type={task.type} data={task.data} />
-                                </div>
-                            </div>
-                        ))}
-                    </motion.div>
-                ) : (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="max-w-2xl mx-auto h-[600px] flex flex-col bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-slate-100"
-                    >
-                        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50">
-                            {messages.map((msg, idx) => (
-                                <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed ${msg.sender === 'user'
-                                        ? 'bg-indigo-600 text-white rounded-tr-none'
-                                        : 'bg-white border border-slate-100 text-slate-600 rounded-tl-none shadow-sm'
-                                        }`}>
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                                    </div>
-                                </div>
-                            ))}
-                            {isSubmitting && (
-                                <div className="flex justify-start">
-                                    <div className="bg-white border border-slate-100 px-4 py-3 rounded-2xl rounded-tl-none shadow-sm flex gap-2 items-center">
-                                        <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" />
-                                        <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce delay-75" />
-                                        <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce delay-150" />
-                                    </div>
-                                </div>
-                            )}
-                            <div ref={chatEndRef} />
-                        </div>
-                        <form onSubmit={handleSendMessage} className="p-4 bg-white border-t border-slate-100">
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={input}
-                                    onChange={(e) => setInput(e.target.value)}
-                                    placeholder="Describe your task..."
-                                    className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-700 placeholder:text-slate-400"
-                                    disabled={isSubmitting}
-                                />
+                            <h3 className="text-2xl font-black text-slate-800 mb-2">Delete Task?</h3>
+                            <p className="text-slate-500 mb-8 leading-relaxed font-medium">
+                                This will permanently remove this record. Ready to let it go?
+                            </p>
+                            <div className="grid grid-cols-2 gap-4">
                                 <button
-                                    type="submit"
-                                    className="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-200"
-                                    disabled={!input.trim() || isSubmitting}
+                                    onClick={() => setTaskToDelete(null)}
+                                    className="px-6 py-4 bg-slate-50 text-slate-600 rounded-2xl font-bold hover:bg-slate-100 transition-all border border-slate-200"
                                 >
-                                    <HiChat size={20} />
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDeleteTask}
+                                    className="px-6 py-4 bg-rose-500 text-white rounded-2xl font-bold hover:bg-rose-600 shadow-lg shadow-rose-200 transition-all"
+                                >
+                                    Delete
                                 </button>
                             </div>
-                        </form>
+                        </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* AI Creation Experience Overlay */}
+            <AnimatePresence>
+                {isCreating && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-50/80 backdrop-blur-xl p-4 md:p-12"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, y: 40, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 40, scale: 0.98 }}
+                            className="w-full max-w-6xl h-full max-h-[900px] bg-white rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] flex overflow-hidden border border-white"
+                        >
+                            {/* Left Panel: Chat */}
+                            <div className="flex-[1.2] flex flex-col border-r border-slate-100 bg-slate-50/30">
+                                <div className="p-8 flex items-center justify-between border-b border-slate-100 bg-white/50">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+                                            <HiChat size={20} />
+                                        </div>
+                                        <div>
+                                            <h2 className="font-black text-slate-800 tracking-tight">Task Buddy</h2>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                                                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Always Active</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button onClick={handleFinishCreation} className="text-slate-400 hover:text-slate-600 p-2 transition-colors">
+                                        <HiPlus className="rotate-45" size={24} />
+                                    </button>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto p-8 space-y-6">
+                                    {messages.map((msg, idx) => (
+                                        <motion.div
+                                            initial={{ opacity: 0, x: msg.sender === 'user' ? 20 : -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            key={idx}
+                                            className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                                        >
+                                            <div className={`max-w-[85%] p-5 rounded-3xl leading-relaxed text-[15px] font-medium ${msg.sender === 'user'
+                                                ? 'bg-indigo-600 text-white rounded-tr-none shadow-xl shadow-indigo-100'
+                                                : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none shadow-sm shadow-slate-100/50'
+                                                }`}>
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                    {isSubmitting && (
+                                        <div className="flex justify-start">
+                                            <div className="bg-white border border-slate-100 px-6 py-4 rounded-3xl rounded-tl-none shadow-sm flex gap-1.5 items-center">
+                                                <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                                                <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                                                <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" />
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div ref={chatEndRef} />
+                                </div>
+
+                                <div className="p-8 space-y-6 bg-white/50 border-t border-slate-100">
+                                    <div className="flex flex-wrap gap-2">
+                                        {messages.length < 3 && quickChips.map((chip, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => setInput(chip.query)}
+                                                className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-full text-xs font-bold hover:border-indigo-400 hover:text-indigo-600 hover:shadow-md transition-all active:scale-95"
+                                            >
+                                                {chip.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <form onSubmit={handleSendMessage} className="relative group">
+                                        <input
+                                            type="text"
+                                            value={input}
+                                            onChange={(e) => setInput(e.target.value)}
+                                            placeholder="Tell me what to track..."
+                                            className="w-full pl-6 pr-16 py-5 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:outline-none focus:border-indigo-500/30 focus:bg-white transition-all text-slate-700 font-medium placeholder:text-slate-300"
+                                            disabled={isSubmitting}
+                                        />
+                                        <button
+                                            type="submit"
+                                            className="absolute right-3 top-3 bottom-3 aspect-square bg-indigo-600 text-white rounded-xl flex items-center justify-center hover:bg-indigo-700 transition-all disabled:opacity-30 disabled:grayscale shadow-lg shadow-indigo-100"
+                                            disabled={!input.trim() || isSubmitting}
+                                        >
+                                            <HiChat size={22} />
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            {/* Right Panel: Live Preview */}
+                            <div className="flex-1 bg-white p-10 flex flex-col">
+                                <div className="mb-10">
+                                    <h3 className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-2">Live Extraction</h3>
+                                    <h2 className="text-3xl font-black text-slate-800 tracking-tight">Draft View</h2>
+                                </div>
+
+                                <div className="flex-1 bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-100 p-8 relative overflow-hidden">
+                                    {!agentState?.partialTask?.title ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-center p-6">
+                                            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-300 mb-4 animate-pulse">
+                                                <HiViewGrid size={32} />
+                                            </div>
+                                            <p className="text-slate-400 font-bold italic">Start chatting to see your task take shape in real-time...</p>
+                                        </div>
+                                    ) : (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="space-y-6"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="p-4 bg-white rounded-2xl shadow-sm border border-slate-100">
+                                                    {getTaskIcon(agentState.partialTask.type)}
+                                                </div>
+                                                <div>
+                                                    <span className="text-[10px] font-black uppercase text-indigo-500 tracking-widest">{agentState.partialTask.type}</span>
+                                                    <h4 className="text-xl font-black text-slate-800 line-clamp-2">{agentState.partialTask.title}</h4>
+                                                </div>
+                                            </div>
+
+                                            {agentState.partialTask.summary && (
+                                                <div className="p-6 bg-white rounded-[2rem] border border-slate-100 shadow-sm">
+                                                    <p className="text-slate-600 text-sm font-medium leading-relaxed italic">
+                                                        "{agentState.partialTask.summary}"
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            <div className="space-y-4">
+                                                <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Extracted Details</h5>
+                                                <div className="bg-white overflow-hidden rounded-[2rem] border border-slate-100 shadow-sm p-6">
+                                                    <TaskDataRenderer type={agentState.partialTask.type} data={agentState.partialTask.data} />
+                                                </div>
+                                            </div>
+
+                                            {agentState.missingFields?.length > 0 && (
+                                                <div className="absolute bottom-6 left-6 right-6">
+                                                    <div className="bg-amber-50/50 border border-amber-100 p-4 rounded-2xl flex items-center gap-3">
+                                                        <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
+                                                            <HiClock size={16} />
+                                                        </div>
+                                                        <span className="text-xs font-bold text-amber-700 italic">
+                                                            {agentState.missingFields.length} more detail{agentState.missingFields.length > 1 ? 's' : ''} needed...
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </motion.div>
+                                    )}
+                                </div>
+
+                                <div className="mt-8">
+                                    <p className="text-[10px] text-center text-slate-300 font-bold uppercase tracking-widest">
+                                        Powered by Advanced Agentic Intelligence
+                                    </p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Main Task Dashboard */}
+            <div className="max-w-7xl mx-auto">
+                <header className="mb-12 flex items-end justify-between">
+                    <div>
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="w-2 h-8 bg-indigo-600 rounded-full" />
+                            <h1 className="text-5xl font-black text-slate-800 tracking-tight">Focus</h1>
+                        </div>
+                        <p className="text-slate-500 font-bold text-lg tracking-tight">Organization meets intuition.</p>
+                    </div>
+                    <button
+                        onClick={() => setIsCreating(true)}
+                        className="group flex items-center gap-3 px-8 py-5 bg-slate-900 text-white rounded-[2rem] font-black shadow-2xl shadow-indigo-100 hover:bg-slate-800 transition-all hover:scale-105 active:scale-95"
+                    >
+                        <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center group-hover:rotate-90 transition-transform">
+                            <HiPlus size={20} />
+                        </div>
+                        New Task
+                    </button>
+                </header>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                    {tasks.length === 0 && (
+                        <div className="col-span-full py-32 text-center">
+                            <div className="w-32 h-32 bg-white rounded-[3rem] shadow-sm flex items-center justify-center text-slate-200 mx-auto mb-8 border border-slate-50">
+                                <HiViewGrid size={64} />
+                            </div>
+                            <h3 className="text-3xl font-black text-slate-800 mb-2 tracking-tight">Silence is gold, but planning is silver.</h3>
+                            <p className="text-slate-400 font-bold text-lg">Use the command center to populate your universe.</p>
+                        </div>
+                    )}
+                    {tasks.map(task => (
+                        <motion.div
+                            layout
+                            key={task.id}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all group relative overflow-hidden"
+                        >
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-3 bg-slate-50 rounded-2xl group-hover:bg-indigo-50 transition-colors">
+                                        {getTaskIcon(task.type)}
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase text-indigo-400 tracking-[0.2em]">{task.type}</span>
+                                </div>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setTaskToDelete(task.id);
+                                    }}
+                                    className="p-2 text-slate-200 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                                >
+                                    <HiTrash size={20} />
+                                </button>
+                            </div>
+
+                            <div className="space-y-2 mb-8">
+                                <h3 className="text-2xl font-black text-slate-800 leading-tight tracking-tight leading-none">{task.title}</h3>
+                                {task.summary && <p className="text-slate-500 font-medium line-clamp-2 text-sm leading-relaxed">{task.summary}</p>}
+                            </div>
+
+                            <div className="bg-slate-50 rounded-[2rem] p-6 border border-slate-100">
+                                <TaskDataRenderer type={task.type} data={task.data} />
+                            </div>
+
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-50/20 to-transparent -mr-12 -mt-12 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
+                        </motion.div>
+                    ))}
+                </div>
+            </div>
         </div>
     );
 };

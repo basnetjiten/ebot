@@ -58,25 +58,38 @@ export class TaskStore {
     async getTasks(userId: string): Promise<Task[]> {
         await this.ensureConnection();
         const results = await this.tasks!.find({ userId } as any)
-            .sort({ startTime: 1 }) // Sort by start time ascending
+            .sort({ createdAt: -1 }) // Sort by newest first by default
             .toArray();
-        return results as Task[];
+
+        return results.map(doc => ({
+            ...doc,
+            id: (doc as any)._id.toHexString(),
+        })) as unknown as Task[];
     }
 
     async updateTaskStatus(taskId: string, status: Task['status']): Promise<Task | null> {
         await this.ensureConnection();
         const result = await this.tasks!.findOneAndUpdate(
-            { id: taskId } as any,
+            { _id: new ObjectId(taskId) } as any,
             { $set: { status } },
             { returnDocument: 'after' }
         );
-        return result as Task | null;
+        if (!result) return null;
+        return {
+            ...result,
+            id: (result as any)._id.toHexString()
+        } as unknown as Task;
     }
 
     async deleteTask(taskId: string): Promise<boolean> {
         await this.ensureConnection();
-        const result = await this.tasks!.deleteOne({ id: taskId } as any);
-        return result.deletedCount > 0;
+        try {
+            const result = await this.tasks!.deleteOne({ _id: new ObjectId(taskId) } as any);
+            return result.deletedCount > 0;
+        } catch (error) {
+            console.error('Error deleting task:', error);
+            return false;
+        }
     }
 }
 
