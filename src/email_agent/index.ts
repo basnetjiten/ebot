@@ -1,6 +1,6 @@
 import { StateGraph, START, END } from '@langchain/langgraph';
 import { EmailAgentState } from './state';
-import { analyzeIntentNode, fetchEmailsNode, sendEmailNode, respondNode } from './nodes';
+import { fetchEmailsNode, respondNode } from './nodes';
 
 const workflow = new StateGraph(EmailAgentState)
     .addNode('fetch', fetchEmailsNode)

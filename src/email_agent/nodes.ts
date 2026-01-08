@@ -1,42 +1,7 @@
 import { AIMessage } from '@langchain/core/messages';
 import { EmailAgentState } from './state';
 import { EmailAgentTools } from './tools';
-import { model } from '../utils/model';
-import { EMAIL_SYSTEM_PROMPT } from './prompts';
-import { SystemMessage } from '@langchain/core/messages';
 
-export const analyzeIntentNode = async (state: typeof EmailAgentState.State) => {
-    console.log('[EmailAgent] Analyzing intent...');
-
-    // Check if account is already loaded
-    let currentAccount = state.currentAccount;
-    if (!currentAccount) {
-        currentAccount = await EmailAgentTools.getAccount(state.userId);
-    }
-
-    const response = await model.invoke([
-        new SystemMessage(EMAIL_SYSTEM_PROMPT + "\n\nAnalyze the last user message and return a JSON with 'operation' (setup|fetch|send|clarify) and any 'details' (to, subject, content)."),
-        ...state.messages
-    ]);
-
-    let operation: any = 'clarify';
-    let details: any = {};
-
-    try {
-        const cleaned = (response.content as string).replace(/```json|```/g, '').trim();
-        const parsed = JSON.parse(cleaned);
-        operation = parsed.operation;
-        details = parsed.details || {};
-    } catch (e) {
-        console.error('Failed to parse intent:', e);
-    }
-
-    return {
-        operation,
-        currentAccount,
-        pendingSend: operation === 'send' ? details : undefined,
-    };
-};
 
 export const fetchEmailsNode = async (state: typeof EmailAgentState.State) => {
     let currentAccount = state.currentAccount;

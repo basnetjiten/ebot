@@ -264,43 +264,44 @@ export class InMemoryDatabase implements IDatabase {
     }
 }
 
+import { getDb } from './connection';
+
 export class MongoDatabase implements IDatabase {
-    private client: MongoClient;
-    private db: Db | null = null;
-    private users: Collection<User> | null = null;
-    private reflections: Collection<ReflectionEntry> | null = null;
-    private todos: Collection<Todo> | null = null;
-    private keywords: Collection<any> | null = null;
+    // Only typed as getters or just access directly via getDb()
+    // But to keep code changes minimal in methods, we can use getters or helper method.
+    // Actually methods access this.users, this.reflections etc.
+    // We can make these getters that pull from getDb().
 
-    private connectionPromise: Promise<void> | null = null;
-
-    constructor(uri: string, dbName: string) {
-        this.client = new MongoClient(uri);
-        this.connectionPromise = this.connect(dbName);
+    private get db(): Db {
+        return getDb();
     }
 
-    private async connect(dbName: string) {
-        try {
-            await this.client.connect();
-            this.db = this.client.db(dbName);
-            this.users = this.db.collection<User>('ebot_users');
-            this.reflections = this.db.collection<ReflectionEntry>('ebot_reflections');
-            this.todos = this.db.collection<Todo>('ebot_todos');
-            this.keywords = this.db.collection('ebot_keywords');
-            console.log('Connected to MongoDB');
-        } catch (error) {
-            console.error('Failed to connect to MongoDB', error);
-            throw error;
-        }
+    private get users(): Collection<User> {
+        return this.db.collection<User>('ebot_users');
     }
 
+    private get reflections(): Collection<ReflectionEntry> {
+        return this.db.collection<ReflectionEntry>('ebot_reflections');
+    }
+
+    private get todos(): Collection<Todo> {
+        return this.db.collection<Todo>('ebot_todos');
+    }
+
+    private get keywords(): Collection<any> {
+        return this.db.collection('ebot_keywords');
+    }
+
+    constructor() {
+        // No connection logic here
+    }
+
+    // Helper to match existing signature pattern if needed, or remove calls to it.
+    // The implementation plan says "Update ensureConnection to call getDb()".
+    // existing methods call `await this.ensureConnection()`.
+    // We can make ensureConnection a no-op or just check getDb.
     private async ensureConnection() {
-        if (this.connectionPromise) {
-            await this.connectionPromise;
-        }
-        if (!this.db || !this.users || !this.reflections || !this.todos || !this.keywords) {
-            throw new Error('Database not connected');
-        }
+        getDb(); // Throws if not connected
     }
 
     // User operations
@@ -584,4 +585,4 @@ import { config } from '../config';
 
 export const database: IDatabase = config.mongodb.useMemoryDb
     ? new InMemoryDatabase()
-    : new MongoDatabase(config.mongodb.uri, config.mongodb.dbName);
+    : new MongoDatabase();

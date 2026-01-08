@@ -14,6 +14,7 @@ import {
 import taskRoutes from './task_routes';
 import emailRoutes from './email_routes';
 import { taskWorker } from '../task_agent/worker';
+import { connectToDatabase } from '../storage/connection';
 
 const app = express();
 // const PORT = config.port; // Removed as per instruction
@@ -64,7 +65,9 @@ app.use((req, res) => {
     });
 });
 
-export const startServer = () => {
+export const startServer = async () => {
+    await connectToDatabase();
+
     app.listen(config.port, () => {
         console.log(`Reflection Agent API server running on port ${config.port}`);
         console.log(`Health check: http://localhost:${config.port}/health`);

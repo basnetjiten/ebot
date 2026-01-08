@@ -1,125 +1,157 @@
-import { SystemMessage, AIMessage } from '@langchain/core/messages';
+
+import { SystemMessage } from '@langchain/core/messages';
+import { tool } from '@langchain/core/tools';
+import { z } from 'zod';
 import { model } from '../utils/model';
 import { taskStore } from '../storage/task_store';
-import { validateTaskData } from './schemas';
 import { ParsedTask, generateMissingFieldQuestions } from './types';
+import { TaskExtractionSchema, TodoDataSchema, EventDataSchema, HabitDataSchema, ReminderDataSchema } from './zod_schemas';
 import { buildSystemPrompt } from './prompts';
-import { cleanJsonOutput } from './utils';
 import { Task } from '../types/task';
-import { EmailService } from '../utils/email';
-import { database } from '../storage/database';
 
-export class TaskTools {
-    static async extractTaskDetails(messages: any[], currentPartialTask: any): Promise<ParsedTask> {
-        try {
-            const now = new Date();
-            const currentTimeStr = `${now.toString()} (ISO: ${now.toISOString()})`;
-            const systemPrompt = buildSystemPrompt(currentTimeStr);
-            const userContext = `
-    Current partial task state:
-    ${JSON.stringify(currentPartialTask, null, 2)}
+// --- Helper Functions (formerly static methods) ---
 
-    Extract or update task details from the conversation.`;
-
-            const response = await model.invoke([
-                new SystemMessage({ content: systemPrompt + '\n\n' + userContext }),
-                ...messages,
-            ]);
-
-            const cleaned = cleanJsonOutput(response.content as string);
-            const extracted: ParsedTask = JSON.parse(cleaned);
-
-            // Validate extracted data
-            const validationErrors = validateTaskData(extracted.type, extracted.data);
-            if (validationErrors.length > 0) {
-                extracted.validationErrors = validationErrors;
-            }
-
-            return extracted;
-        } catch (e) {
-            console.error('Error parsing task:', e);
-            throw e;
-        }
-    }
-
-    static generateClarificationContent(
-        missingFields: any[],
-        validationErrors?: string[],
-        acknowledgement?: string,
-    ): string {
-        const missingQuestions = generateMissingFieldQuestions(missingFields);
-        const opening = acknowledgement || "I'd love to help you set this up!";
-
-        // If we have both validation errors and missing fields
-        if (validationErrors && validationErrors.length > 0 && missingFields.length > 0) {
-            return `${opening} To get started, could you let me know:\n\n${missingQuestions}`;
-        }
-
-        // If we only have validation errors
-        if (validationErrors && validationErrors.length > 0) {
-            const friendlyErrors = validationErrors
-                .map((err) => err.replace('Missing required field: ', ''))
-                .join(', ');
-            return `${opening}\n\nI'm having a little trouble with some details (${friendlyErrors}). Could you help me fill those in?`;
-        }
-
-        // If we only have missing fields
-        if (missingFields.length === 1) {
-            return `${opening}\n\nJust one quick thing: ${missingQuestions}`;
-        }
-
-        return `${opening}\n\nI just need a couple more details:\n\n${missingQuestions}`;
-    }
-
-    static async generateConfirmationPrompt(task: any): Promise<string> {
+export async function extractTaskDetails(
+    messages: any[],
+    currentPartialTask: any,
+    lastCreatedTask?: Task
+): Promise<ParsedTask> {
+    try {
         const now = new Date();
         const currentTimeStr = `${now.toString()} (ISO: ${now.toISOString()})`;
-        const prompt = `
-     You're confirming task details with someone in a friendly way.
-     The current time is ${currentTimeStr}.
+        const systemPrompt = buildSystemPrompt(currentTimeStr);
 
-     IMPORTANT: When displaying times to the user, ALWAYS use their LOCAL time (based on the current time provided above).
-     Do NOT show UTC times if they differ from the user's local context.
+        let userContext = `
+    Current partial task state:
+    ${JSON.stringify(currentPartialTask, null, 2)}`;
 
-     Task details:
-     Title: ${task.title}
-     Summary: ${task.summary}
-Details: ${JSON.stringify(task.data, null, 2)}
+        if (lastCreatedTask) {
+            userContext += `
+    
+    Recently Created Task (for context):
+    ${JSON.stringify({ title: lastCreatedTask.title, type: lastCreatedTask.type, id: lastCreatedTask.id }, null, 2)}
+    (If user says "remind me", they might mean THIS task. If so, set isUpdate: true)`;
+        }
 
-Create a short, friendly message that:
-- Shows them what you're about to create
-- Presents the key details in a readable way (not raw JSON)
-- Simply asks if they want to create this task
+        userContext += `\n\n    Extract or update task details from the conversation.`;
 
-Keep it brief and natural. Example format:
+        // Use structured output!
+        const structuredModel = model.withStructuredOutput(TaskExtractionSchema);
 
-"Alright! I'm ready to create:
+        const response = await structuredModel.invoke([
+            new SystemMessage({ content: systemPrompt + '\n\n' + userContext }),
+            ...messages,
+        ]);
 
-**${task.title}**
-${task.summary}
+        // Structured output response is already the object!
+        return response as ParsedTask;
 
-[Show key details nicely]
-
-Create this task?"
-`;
-
-        const response = await model.invoke([new SystemMessage({ content: prompt }) as any]);
-        return response.content as string;
-    }
-
-    static async createTask(userId: string, partialTask: any): Promise<Task> {
-        const task = await taskStore.createTask({
-            userId: userId,
-            title: partialTask.title!,
-            summary: partialTask.summary || '',
-            type: partialTask.type as any,
-            data: partialTask.data || {},
-            remindViaEmail: partialTask.remindViaEmail ?? partialTask.data?.remindViaEmail,
-            status: 'pending',
-        } as any);
-
-
-
-        return task;
+    } catch (e) {
+        console.error('Error parsing task:', e);
+        throw e;
     }
 }
+
+export function generateClarificationContent(
+    missingFields: any[],
+    validationErrors?: string[],
+    acknowledgement?: string,
+): string {
+    // cast missingFields mainly because Zod inference might make it optional/undefined in ParsedTask 
+    // but here we expect an array if we are calling this function. 
+    // Actually types say it can be undefined.
+    const safeMissingFields = missingFields || [];
+    const missingQuestions = generateMissingFieldQuestions(safeMissingFields);
+    const opening = acknowledgement || "I'd love to help you set this up!";
+
+    // If we have both validation errors and missing fields
+    if (validationErrors && validationErrors.length > 0 && safeMissingFields.length > 0) {
+        return `${opening} To get started, could you let me know:\n\n${missingQuestions}`;
+    }
+
+    // If we only have validation errors
+    if (validationErrors && validationErrors.length > 0) {
+        const friendlyErrors = validationErrors
+            .map((err) => err.replace('Missing required field: ', ''))
+            .join(', ');
+        return `${opening}\n\nI'm having a little trouble with some details (${friendlyErrors}). Could you help me fill those in?`;
+    }
+
+    // If we only have missing fields
+    if (safeMissingFields.length === 1) {
+        return `${opening}\n\nJust one quick thing: ${safeMissingFields[0].suggestedQuestion || `What is the ${safeMissingFields[0].field}?`}`;
+    }
+
+    return `${opening}\n\nI just need a couple more details:\n\n${missingQuestions}`;
+}
+
+export async function generateConfirmationPrompt(task: any): Promise<string> {
+    const now = new Date();
+    const currentTimeStr = `${now.toString()} (ISO: ${now.toISOString()})`;
+    const prompt = `
+    I want you to act as a helpful friend confirming plans, not a formal AI assistant.
+    
+    Context: The current time is ${currentTimeStr}.
+
+    Task details to confirm:
+    - **Title:** ${task.title}
+    - **Summary:** ${task.summary}
+    - **Details:** ${JSON.stringify(task.data, null, 2)}
+
+    Requirements:
+    1. Use the user's local timezone (based on current time above) - never show UTC
+    2. Write like you're texting a friend - casual but clear
+    3. Avoid phrases like "I'm happy to help" or "I'd be delighted" - just get to the point naturally
+    4. Don't over-structure with bullet points unless there are many items
+    5. Keep it brief and conversational
+
+    Bad example (too AI-like):
+    "Hello there! I'm happy to help you confirm the details for your task..."
+
+    Good example (natural):
+    "Got it! So you want to buy groceries today at 7:00 PM with your aunt. Sound good, or want to change anything?"
+
+    Write a quick, natural confirmation that sounds like something a real person would say.
+    `;
+
+    const response = await model.invoke([new SystemMessage({ content: prompt }) as any]);
+    return response.content as string;
+}
+
+// --- Tools ---
+
+/**
+ * Tool for creating a task in the database.
+ */
+export const createTaskTool = tool(
+    async ({ userId, title, summary, type, data, remindViaEmail }) => {
+        try {
+            const task = await taskStore.createTask({
+                userId,
+                title,
+                summary: summary || '',
+                type: type as any,
+                data: data || {},
+                remindViaEmail: remindViaEmail,
+                status: 'pending',
+            } as any);
+
+            return JSON.stringify(task);
+        } catch (error) {
+            console.error("Error creating task:", error);
+            return "Error creating task";
+        }
+    },
+    {
+        name: "create_task",
+        description: "Creates a new task (todo, event, habit, reminder) in the database.",
+        schema: z.object({
+            userId: z.string().describe("The user ID"),
+            title: z.string().describe("The title of the task"),
+            summary: z.string().optional().describe("A summary of the task"),
+            type: z.enum(['todo', 'event', 'habit', 'reminder']).describe("The type of task"),
+            data: z.record(z.string(), z.any()).optional().describe("Task specific data"),
+            remindViaEmail: z.boolean().optional().describe("Whether to send an email reminder"),
+        })
+    }
+);

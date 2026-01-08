@@ -1,8 +1,9 @@
 import { AIMessage } from '@langchain/core/messages';
 import { END } from '@langchain/langgraph';
 import { TaskStateAnnotation } from './state';
-import { TaskTools } from './tools';
+import { extractTaskDetails, generateClarificationContent, generateConfirmationPrompt, createTaskTool } from './tools';
 import { taskStore } from '../storage/task_store';
+import { Task } from '../types/task';
 
 // Node: Parse User Request
 export const parseRequestNode = async (state: typeof TaskStateAnnotation.State) => {
@@ -34,9 +35,42 @@ export const parseRequestNode = async (state: typeof TaskStateAnnotation.State) 
             }
         }
 
-        const extracted = await TaskTools.extractTaskDetails(state.messages, state.partialTask);
+        // Fetch recently created task for context if available
+        let lastTask: Task | undefined;
+        if (state.lastCreatedTaskId) {
+            const tasks = await taskStore.getTasks(state.userId);
+            lastTask = tasks.find(t => t.id === state.lastCreatedTaskId);
+        }
 
-        // Merge with existing partial task
+        const extracted = await extractTaskDetails(state.messages, state.partialTask, lastTask);
+
+        // Handle UPDATE logic
+        if (extracted.isUpdate && state.lastCreatedTaskId && lastTask) {
+            console.log(`[ParseNode] Detected update intent for task ${state.lastCreatedTaskId}`);
+
+            // Update the task in DB
+            await taskStore.updateTask(state.lastCreatedTaskId, {
+                // We merge the extracted data into the existing task data
+                // But wait, extracted.data might need to be merged carefully?
+                // Simple merge for now:
+                data: { ...lastTask.data, ...extracted.data } as any,
+                // Also update top-level fields if present
+                ...(extracted.title ? { title: extracted.title } : {}),
+                ...(extracted.type ? { type: extracted.type } : {}),
+                remindViaEmail: extracted.data?.remindViaEmail ?? lastTask.remindViaEmail // promoted field
+            } as any);
+
+            const updateMsg = "I've updated the task for you!";
+            return {
+                messages: [new AIMessage(updateMsg)],
+                isWaitingForEmailChoice: false,
+                // partialTask: {}, // Do not clear partialTask? Actually we should clear it if we are done.
+                partialTask: {},
+                isDone: true, // End conversation turn
+            };
+        }
+
+        // Standard Creation Flow (Merge with existing partial task)
         const updatedTask = {
             type: extracted.type,
             title: extracted.title || state.partialTask.title,
@@ -73,7 +107,7 @@ export const parseRequestNode = async (state: typeof TaskStateAnnotation.State) 
 export const askClarificationNode = async (state: typeof TaskStateAnnotation.State) => {
     console.log('Asking clarification...');
 
-    const content = TaskTools.generateClarificationContent(
+    const content = generateClarificationContent(
         state.missingFields,
         state.validationErrors,
         state.acknowledgement,
@@ -110,7 +144,7 @@ export const confirmTaskNode = async (state: typeof TaskStateAnnotation.State) =
     }
 
     // Otherwise, present the task for confirmation
-    const content = await TaskTools.generateConfirmationPrompt(state.partialTask);
+    const content = await generateConfirmationPrompt(state.partialTask);
 
     return {
         messages: [new AIMessage(content)],
@@ -123,7 +157,17 @@ export const saveTaskNode = async (state: typeof TaskStateAnnotation.State) => {
     console.log('Saving task...');
 
     if (state.isComplete) {
-        const newTask = await TaskTools.createTask(state.userId, state.partialTask);
+        // createTaskTool returns a JSON string of the task
+        const toolResult = await createTaskTool.invoke({
+            userId: state.userId,
+            title: state.partialTask.title!,
+            summary: state.partialTask.summary || '',
+            type: state.partialTask.type as any,
+            data: state.partialTask.data || {},
+            remindViaEmail: state.partialTask.remindViaEmail ?? state.partialTask.data?.remindViaEmail,
+        });
+
+        const newTask = JSON.parse(toolResult);
         const isReminder = newTask.type === 'reminder';
         const needsEmailPrompt = isReminder && !newTask.remindViaEmail;
 
@@ -135,7 +179,7 @@ export const saveTaskNode = async (state: typeof TaskStateAnnotation.State) => {
         return {
             messages: [new AIMessage(message)],
             partialTask: {},
-            lastCreatedTaskId: needsEmailPrompt ? newTask.id : undefined,
+            lastCreatedTaskId: newTask.id, // Always preserve ID for context
             isWaitingForEmailChoice: needsEmailPrompt,
             isComplete: false,
             isConfirmationPending: false,

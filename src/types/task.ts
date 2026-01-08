@@ -20,6 +20,8 @@ export interface TodoTask extends BaseTask {
         deadline?: string;
         priority?: 'low' | 'medium' | 'high';
         subtasks?: { title: string; completed: boolean }[];
+        reminderTime?: string;
+        reminderSent?: boolean;
     };
 }
 

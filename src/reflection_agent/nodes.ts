@@ -1,5 +1,5 @@
 import { AgentStateType } from './state';
-import { ReflectionAnalyzer } from './tools';
+import { analyzeKeyWords, generateSummary, generateFeedback, extractTodos } from './tools';
 import { END } from '@langchain/langgraph';
 import { Todo } from '../types';
 import { HumanMessage, AIMessage } from '@langchain/core/messages';
@@ -29,7 +29,7 @@ export const reflectionProcessor = async (
 
     try {
         // Extract todos from the reflection
-        const todos = await ReflectionAnalyzer.extractTodos(state.messages);
+        const todos = await extractTodos(state.messages);
 
         const suggestedTodos: Todo[] = todos.map((todo) => ({
             id: crypto.randomUUID(),
@@ -67,7 +67,7 @@ export const keywordAnalyzer = async (state: AgentStateType): Promise<Partial<Ag
     }
 
     try {
-        const keywordAnalysis = await ReflectionAnalyzer.analyzeKeyWords(state.messages);
+        const keywordAnalysis = await analyzeKeyWords(state.messages);
 
         return {
             keywordAnalysis,
@@ -93,7 +93,7 @@ export const summaryGenerator = async (state: AgentStateType): Promise<Partial<A
     }
 
     try {
-        const summary = await ReflectionAnalyzer.generateSummary(state.messages);
+        const summary = await generateSummary(state.messages);
 
         return {
             summary,
@@ -126,7 +126,7 @@ export const feedbackGenerator = async (
     }
 
     try {
-        const feedback = await ReflectionAnalyzer.generateFeedback(
+        const feedback = await generateFeedback(
             state.currentReflection.content,
             state.currentReflection.type,
             state.messages,
@@ -172,11 +172,11 @@ export const completionProcessor = (state: AgentStateType): Partial<AgentStateTy
     // Update the reflection with analysis results
     const updatedReflection = state.currentReflection
         ? {
-              ...state.currentReflection,
-              keywords: state.keywordAnalysis,
-              summary: state.summary,
-              feedback: state.feedback,
-          }
+            ...state.currentReflection,
+            keywords: state.keywordAnalysis,
+            summary: state.summary,
+            feedback: state.feedback,
+        }
         : null;
 
     return {

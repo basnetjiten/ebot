@@ -1,15 +1,7 @@
-import { TASK_SCHEMAS } from './schemas';
+import { z } from 'zod';
+import { TaskExtractionSchema } from './zod_schemas';
 
-export interface ParsedTask {
-    type: keyof typeof TASK_SCHEMAS;
-    title: string;
-    summary: string;
-    data: Record<string, any>;
-    remindViaEmail?: boolean;
-    conversationalResponse?: string;
-    missingFields: Array<{ field: string; reason: string; suggestedQuestion?: string }>;
-    validationErrors?: string[];
-}
+export type ParsedTask = z.infer<typeof TaskExtractionSchema>;
 
 export const generateMissingFieldQuestions = (
     missingFields: ParsedTask['missingFields'],

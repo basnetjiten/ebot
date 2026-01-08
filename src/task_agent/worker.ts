@@ -59,14 +59,55 @@ export class TaskWorker {
         try {
             console.log(`[TaskWorker] Processing task: ${task.title} (${task.id})`);
 
-            // 1. Check if email reminder is needed
-            if (task.remindViaEmail) {
-                await this.sendEmailReminder(task);
+            // 1. Check if it's a dedicated reminder task
+            if (task.type === 'reminder') {
+                if (task.remindViaEmail) {
+                    await this.sendEmailReminder(task);
+                }
+                // Mark as completed
+                await taskStore.updateTaskStatus(task.id, 'completed');
+                console.log(`[TaskWorker] Reminder task ${task.id} marked as completed.`);
+                return;
             }
 
-            // 2. Mark as completed
-            await taskStore.updateTaskStatus(task.id, 'completed');
-            console.log(`[TaskWorker] Task ${task.id} marked as completed.`);
+            // 2. Handling for other tasks (Todo, Event, etc.) with reminders
+            if (task.remindViaEmail) {
+                // Check if reminder is due
+                const reminderTime = (task.data as any)?.reminderTime;
+                const now = new Date().toISOString();
+
+                if (reminderTime && reminderTime <= now) {
+                    await this.sendEmailReminder(task);
+
+                    // Mark reminder as sent, but keep task pending
+                    await taskStore.updateTask(task.id, {
+                        data: { ...task.data, reminderSent: true }
+                    } as any);
+                    console.log(`[TaskWorker] Sent reminder for task ${task.id}, marked reminderSent=true.`);
+                }
+            }
+
+            // 3. (Optional) Existing logic for events to mark them 'completed' or 'in_progress' could go here,
+            // but for now we only wanted to fix the reminder behavior.
+            // If it was an event that started, maybe we leave it as pending or move to in_progress?
+            // The original code marked EVERYTHING as completed if it was picked up.
+            // For stability, let's keep original behavior for Events (start time passed -> completed? Or just stay pending?)
+            // The user request was about "email reminders".
+            // Let's assume if it's an Event and start time marked it picked up, maybe we shouldn't complete it instantly?
+            // But to be safe and stick to scope: I will only modify the Reminder logic.
+            // If it was picked up because of start time (and not reminder time), we might still want to complete it?
+
+            // Re-evaluating: The query picks up Events if startTime <= now. 
+            // If we don't complete them, they will be picked up forever in the loop.
+            // So if it was picked up by startTime (and not reminder), we should probably complete it or flag it.
+
+            if (task.type === 'event' && (task.data as any).startTime <= new Date().toISOString()) {
+                // For now, let's auto-complete events that have "started" to prevent infinite loop,
+                // or maybe we should have an 'in_progress' state?
+                // Let's stick to 'completed' to match previous behavior for events.
+                await taskStore.updateTaskStatus(task.id, 'completed');
+                console.log(`[TaskWorker] Event task ${task.id} marked as completed (started).`);
+            }
 
         } catch (error) {
             console.error(`[TaskWorker] Failed to process task ${task.id}:`, error);

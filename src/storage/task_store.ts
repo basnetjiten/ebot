@@ -3,41 +3,23 @@ import { Task } from '../types/task';
 import { config } from '../config';
 import { v4 as uuidv4 } from 'uuid';
 
-export class TaskStore {
-    private client: MongoClient;
-    private db: Db | null = null;
-    private tasks: Collection<Task> | null = null;
-    private connectionPromise: Promise<void> | null = null;
+import { getDb } from './connection';
 
-    constructor() {
-        // Create a SEPARATE connection for tasks as requested
-        this.client = new MongoClient(config.mongodb.uri);
-        this.connectionPromise = this.connect();
+export class TaskStore {
+    private get db(): Db {
+        return getDb();
     }
 
-    private async connect() {
-        try {
-            await this.client.connect();
-            // Using a specific DB name for tasks if we want complete separation,
-            // or same DB but different connection instance.
-            // The prompt asked for "separate entity and db connections".
-            // We will use the configured DB name but this is a distinct connection.
-            this.db = this.client.db(config.mongodb.dbName);
-            this.tasks = this.db.collection<Task>('ebot_tasks');
-            console.log('Connected to MongoDB for Tasks (Separate Connection)');
-        } catch (error) {
-            console.error('Failed to connect to MongoDB for Tasks', error);
-            throw error;
-        }
+    private get tasks(): Collection<Task> {
+        return this.db.collection<Task>('ebot_tasks');
+    }
+
+    constructor() {
+        // Shared connection used
     }
 
     private async ensureConnection() {
-        if (this.connectionPromise) {
-            await this.connectionPromise;
-        }
-        if (!this.db || !this.tasks) {
-            throw new Error('Task Database not connected');
-        }
+        getDb(); // Throws if not connected
     }
 
     async createTask(taskData: any): Promise<Task> {
@@ -47,7 +29,7 @@ export class TaskStore {
             _id: new ObjectId(),
             createdAt: new Date(),
         };
-        await this.tasks!.insertOne(doc as any);
+        await this.tasks.insertOne(doc as any);
         return {
             ...taskData,
             id: doc._id.toHexString(),
@@ -57,7 +39,7 @@ export class TaskStore {
 
     async getTasks(userId: string): Promise<Task[]> {
         await this.ensureConnection();
-        const results = await this.tasks!.find({ userId } as any)
+        const results = await this.tasks.find({ userId } as any)
             .sort({ createdAt: -1 }) // Sort by newest first by default
             .toArray();
 
@@ -74,7 +56,7 @@ export class TaskStore {
         console.log(`[TaskStore] Querying for due tasks. Current time (ISO): ${now}`);
 
         // First, let's see ALL pending tasks for debugging
-        const allPending = await this.tasks!.find({ status: 'pending' } as any).toArray();
+        const allPending = await this.tasks.find({ status: 'pending' } as any).toArray();
         console.log(`[TaskStore] Total pending tasks in DB: ${allPending.length}`);
 
         if (allPending.length > 0) {
@@ -91,12 +73,17 @@ export class TaskStore {
         }
 
         // Find pending tasks where triggerTime or startTime has passed
-        const results = await this.tasks!
+        const results = await this.tasks
             .find({
                 status: 'pending',
                 $or: [
-                    { 'data.triggerTime': { $lte: now } },
-                    { 'data.startTime': { $lte: now } },
+                    { type: 'reminder', 'data.triggerTime': { $lte: now } },
+                    { type: 'event', 'data.startTime': { $lte: now } },
+                    {
+                        remindViaEmail: true,
+                        'data.reminderTime': { $lte: now },
+                        'data.reminderSent': { $ne: true },
+                    },
                 ],
             } as any)
             .toArray();
@@ -117,7 +104,7 @@ export class TaskStore {
 
     async updateTask(taskId: string, updates: Partial<Task>): Promise<Task | null> {
         await this.ensureConnection();
-        const result = await this.tasks!.findOneAndUpdate(
+        const result = await this.tasks.findOneAndUpdate(
             { _id: new ObjectId(taskId) } as any,
             { $set: updates },
             { returnDocument: 'after' },
@@ -132,7 +119,7 @@ export class TaskStore {
     async deleteTask(taskId: string): Promise<boolean> {
         await this.ensureConnection();
         try {
-            const result = await this.tasks!.deleteOne({ _id: new ObjectId(taskId) } as any);
+            const result = await this.tasks.deleteOne({ _id: new ObjectId(taskId) } as any);
             return result.deletedCount > 0;
         } catch (error) {
             console.error('Error deleting task:', error);
