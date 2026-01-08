@@ -32,15 +32,24 @@ async function main() {
     // 2. Verify extractTaskDetails (standalone function)
     console.log("\n2. Testing extractTaskDetails...");
     try {
+        console.log("Testing simple input...");
         const result = await extractTaskDetails(
             [new HumanMessage("Buy milk tomorrow at 5pm")],
             {}
         );
         console.log("extractTaskDetails Result:", result);
+
+        console.log("\nTesting tricky input (source of hallucinations)...");
+        const trickyResult = await extractTaskDetails(
+            [new HumanMessage("Remind me to call the dentist in 2 minutes today")],
+            {}
+        );
+        console.log("Tricky Result:", trickyResult);
+
         if (result.title || result.type) {
             console.log("✅ extractTaskDetails passed");
         } else {
-            console.log("⚠️  extractTaskDetails returned empty (might depend on LLM)");
+            console.log("⚠️  extractTaskDetails returned empty");
         }
     } catch (e) {
         console.error("❌ extractTaskDetails error:", e);

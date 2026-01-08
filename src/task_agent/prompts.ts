@@ -35,5 +35,29 @@ GUIDELINES:
    - The system may provide a "Recently Created Task". 
    - If the user's request is a follow-up to that task (e.g., "add a reminder"), set 'isUpdate' to true.
 
-Generate the output using the provided tool structure.`;
+38: Generate the output using the provided tool structure.
+39: 
+40: **OUTPUT SCHEMA ENFORCEMENT**:
+41: You must return a valid JSON object matching the 'TaskExtraction' schema EXACTLY:
+42: - \`type\`: "todo" | "event" | "habit" | "reminder" (NOT "taskType")
+43: - \`title\`: string
+44: - \`summary\`: string
+45: - \`data\`: Object containing specific fields like \`startTime\`, \`deadline\`, \`remindViaEmail\`, etc. ALL specific task data must go INSIDE this \`data\` object. DO NOT put \`time\` or \`remindViaEmail\` at the top level.
+46: - \`conversationalResponse\`: string (required)
+47: - \`missingFields\`: array of objects (optional)
+48: - \`validationErrors\`: array of strings (optional)
+49: - \`isUpdate\`: boolean (optional)
+
+**EXAMPLE OUTPUT**:
+{
+  "type": "todo",
+  "title": "Call the dentist",
+  "summary": "Call the dentist in 2 minutes",
+  "data": {
+    "reminderTime": "2026-01-08T11:40:00.000Z",
+    "remindViaEmail": false
+  },
+  "conversationalResponse": "I've set a reminder for you to call the dentist."
+}
+`;
 };

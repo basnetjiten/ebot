@@ -72,7 +72,7 @@ export const parseRequestNode = async (state: typeof TaskStateAnnotation.State) 
 
         // Standard Creation Flow (Merge with existing partial task)
         const updatedTask = {
-            type: extracted.type,
+            type: extracted.type || 'todo',
             title: extracted.title || state.partialTask.title,
             summary: extracted.summary || state.partialTask.summary,
             data: {

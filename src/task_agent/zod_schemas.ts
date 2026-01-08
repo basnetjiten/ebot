@@ -41,9 +41,9 @@ export const ReminderDataSchema = z.object({
 // Gemini supports them reasonably well.
 
 export const TaskExtractionSchema = z.object({
-    type: z.enum(['todo', 'event', 'habit', 'reminder']).describe('The type of task being created or updated'),
+    type: z.enum(['todo', 'event', 'habit', 'reminder']).describe('The type of task being created or updated').optional(),
     title: z.string().describe('The title of the task'),
-    summary: z.string().describe('A friendly, user-facing summary of the task plan (using local time for display)'),
+    summary: z.string().describe('A friendly, user-facing summary of the task plan (using local time for display)').optional(),
 
     // We use a loose object for data here because we want to capture whatever the model sends, 
     // and validte it later using the specific schemas, OR we can try to make it strict.
@@ -57,10 +57,10 @@ export const TaskExtractionSchema = z.object({
     // and then reconstruct the object, BUT keeping them separate effectively namespaces them.
     // Let's use a flexible record for now to avoid Zod union complexities with "Partial" updates.
     // The model is smart enough to put the right fields in `data`.
-    data: z.record(z.string(), z.any()).describe('The specific details of the task (e.g. startTime, priority, etc.)'),
+    data: z.record(z.string(), z.any()).describe('The specific details of the task (e.g. startTime, priority, etc.)').optional(),
 
     isUpdate: z.boolean().describe('Set to true if this request is modifying an existing task context').optional(),
-    conversationalResponse: z.string().describe('A warm, friendly response in valid JSON (no markdown) acknowledging the user request'),
+    conversationalResponse: z.string().describe('A warm, friendly response in valid JSON (no markdown) acknowledging the user request').optional(),
 
     missingFields: z.array(z.object({
         field: z.string(),

@@ -155,3 +155,10 @@ export const createTaskTool = tool(
         })
     }
 );
+
+export const TaskTools = {
+    extractTaskDetails,
+    generateClarificationContent,
+    generateConfirmationPrompt,
+    createTaskTool
+};
