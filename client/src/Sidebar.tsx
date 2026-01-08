@@ -1,6 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { HiSun, HiPlus, HiCheck, HiDesktopComputer, HiEmojiHappy, HiMail } from 'react-icons/hi';
+import {
+    HiSun,
+    HiPlus,
+    HiCheck,
+    HiDesktopComputer,
+    HiEmojiHappy,
+    HiMail,
+    HiSparkles,
+} from 'react-icons/hi';
 import { Link, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -47,10 +55,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <nav className="space-y-2">
                     <Link
                         to="/reflection"
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group ${location.pathname === '/reflection'
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group ${
+                            location.pathname === '/reflection'
                                 ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-500/25'
                                 : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-                            }`}
+                        }`}
                     >
                         <HiSun
                             size={20}
@@ -60,14 +69,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     : 'group-hover:text-amber-500 transition-colors'
                             }
                         />
-                        <span className="font-semibold tracking-wide">Reflection Chat</span>
+                        <span className="font-semibold tracking-wide">Recent Chat</span>
                     </Link>
                     <Link
                         to="/dashboard"
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group ${location.pathname === '/dashboard'
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group ${
+                            location.pathname === '/dashboard'
                                 ? 'bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white shadow-md shadow-fuchsia-500/25'
                                 : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-                            }`}
+                        }`}
                     >
                         <HiDesktopComputer
                             size={20}
@@ -81,10 +91,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </Link>
                     <Link
                         to="/tasks"
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group ${location.pathname === '/tasks'
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group ${
+                            location.pathname === '/tasks'
                                 ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/25'
                                 : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-                            }`}
+                        }`}
                     >
                         <HiCheck
                             size={20}
@@ -98,10 +109,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </Link>
                     <Link
                         to="/email"
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group ${location.pathname === '/email'
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group ${
+                            location.pathname === '/email'
                                 ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/25'
                                 : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-                            }`}
+                        }`}
                     >
                         <HiMail
                             size={20}
@@ -138,10 +150,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                                         {keyword}
                                     </span>
                                 )) || (
-                                        <span className="text-sm text-slate-400 italic">
-                                            No topics detected
-                                        </span>
-                                    )}
+                                    <span className="text-sm text-slate-400 italic">
+                                        No topics detected
+                                    </span>
+                                )}
                             </div>
                         </div>
 
@@ -168,28 +180,31 @@ const Sidebar: React.FC<SidebarProps> = ({
                                         {analysisResult.suggestedTodos.map((todo) => (
                                             <div
                                                 key={todo.id}
-                                                className={`group flex items-center gap-3 p-3 bg-white/60 border rounded-2xl shadow-sm transition-all backdrop-blur-sm ${todo.isCompleted
+                                                className={`group flex items-center gap-3 p-3 bg-white/60 border rounded-2xl shadow-sm transition-all backdrop-blur-sm ${
+                                                    todo.isCompleted
                                                         ? 'border-emerald-100 bg-emerald-50/30'
                                                         : 'border-slate-100 hover:border-indigo-200 hover:shadow-md hover:-translate-y-0.5'
-                                                    }`}
+                                                }`}
                                             >
                                                 <button
                                                     onClick={() =>
                                                         onToggleTodo?.(todo.id, todo.isCompleted)
                                                     }
-                                                    className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all shadow-sm ${todo.isCompleted
+                                                    className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all shadow-sm ${
+                                                        todo.isCompleted
                                                             ? 'bg-emerald-500 border-emerald-500 text-white'
                                                             : 'bg-white border-slate-200 group-hover:border-indigo-400'
-                                                        }`}
+                                                    }`}
                                                 >
                                                     {todo.isCompleted && <HiCheck size={14} />}
                                                 </button>
                                                 <div className="flex-1">
                                                     <p
-                                                        className={`text-xs font-semibold transition-all ${todo.isCompleted
+                                                        className={`text-xs font-semibold transition-all ${
+                                                            todo.isCompleted
                                                                 ? 'text-slate-400 line-through'
                                                                 : 'text-slate-800'
-                                                            }`}
+                                                        }`}
                                                     >
                                                         {todo.title}
                                                     </p>

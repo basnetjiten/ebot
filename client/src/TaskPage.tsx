@@ -346,10 +346,11 @@ const TaskPage: React.FC<TaskPageProps> = ({ userId }) => {
                                             className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                                         >
                                             <div
-                                                className={`max-w-[85%] p-5 rounded-3xl leading-relaxed text-[15px] font-medium ${msg.sender === 'user'
-                                                    ? 'bg-indigo-600 text-white rounded-tr-none shadow-xl shadow-indigo-100'
-                                                    : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none shadow-sm shadow-slate-100/50'
-                                                    }`}
+                                                className={`max-w-[85%] p-5 rounded-3xl leading-relaxed text-[15px] font-medium ${
+                                                    msg.sender === 'user'
+                                                        ? 'bg-indigo-600 text-white rounded-tr-none shadow-xl shadow-indigo-100'
+                                                        : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none shadow-sm shadow-slate-100/50'
+                                                }`}
                                             >
                                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                     {msg.content}

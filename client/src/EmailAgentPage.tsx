@@ -16,7 +16,7 @@ const EmailAgentPage: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (accounts.some(a => a.provider === 'gmail' && a.isConnected)) {
+        if (accounts.some((a) => a.provider === 'gmail' && a.isConnected)) {
             fetchLatestEmails();
         }
     }, [accounts]);
@@ -67,7 +67,7 @@ const EmailAgentPage: React.FC = () => {
                 window.open(
                     data.data,
                     'Connect Gmail',
-                    `width=${width},height=${height},left=${left},top=${top}`
+                    `width=${width},height=${height},left=${left},top=${top}`,
                 );
 
                 const handleMessage = (event: MessageEvent) => {
@@ -84,7 +84,8 @@ const EmailAgentPage: React.FC = () => {
         }
     };
 
-    const isConnected = user?.isGmailConnected || accounts.some(a => a.provider === 'gmail' && a.isConnected);
+    const isConnected =
+        user?.isGmailConnected || accounts.some((a) => a.provider === 'gmail' && a.isConnected);
 
     return (
         <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900 font-sans">
@@ -94,14 +95,22 @@ const EmailAgentPage: React.FC = () => {
                     <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                         <Mail className="text-indigo-600" /> Email Utility
                     </h2>
-                    <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest font-bold opacity-60">Manage reminders</p>
+                    <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest font-bold opacity-60">
+                        Manage reminders
+                    </p>
                 </div>
 
                 <div className="flex-1 p-5 overflow-y-auto">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Status</h3>
-                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${isConnected ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
-                            <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-indigo-500 animate-pulse' : 'bg-slate-400'}`} />
+                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">
+                            Status
+                        </h3>
+                        <div
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${isConnected ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}
+                        >
+                            <div
+                                className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-indigo-500 animate-pulse' : 'bg-slate-400'}`}
+                            />
                             {isConnected ? 'GMAIL LINKED' : 'DISCONNECTED'}
                         </div>
                     </div>
@@ -109,7 +118,10 @@ const EmailAgentPage: React.FC = () => {
                     {!isConnected ? (
                         <div className="space-y-4">
                             <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 border-dashed text-center">
-                                <p className="text-[11px] text-slate-500 mb-4 leading-relaxed font-medium">Link your Gmail account to enable task reminders and view recent activity.</p>
+                                <p className="text-[11px] text-slate-500 mb-4 leading-relaxed font-medium">
+                                    Link your Gmail account to enable task reminders and view recent
+                                    activity.
+                                </p>
                                 <button
                                     onClick={handleConnectGmail}
                                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-[0.98]"
@@ -121,14 +133,26 @@ const EmailAgentPage: React.FC = () => {
                     ) : (
                         <div className="space-y-4">
                             <div className="p-5 bg-gradient-to-br from-indigo-50 to-white rounded-2xl border border-indigo-100 shadow-sm">
-                                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-3">Linked Account</p>
+                                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-3">
+                                    Linked Account
+                                </p>
                                 <div className="flex items-center gap-3">
                                     <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md shadow-indigo-100">
-                                        {accounts.find(a => a.provider === 'gmail' && a.isConnected)?.email[0].toUpperCase()}
+                                        {accounts
+                                            .find((a) => a.provider === 'gmail' && a.isConnected)
+                                            ?.email[0].toUpperCase()}
                                     </div>
                                     <div className="overflow-hidden">
-                                        <p className="text-sm font-bold text-slate-700 truncate">{accounts.find(a => a.provider === 'gmail' && a.isConnected)?.email}</p>
-                                        <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-tight">Active Sync</p>
+                                        <p className="text-sm font-bold text-slate-700 truncate">
+                                            {
+                                                accounts.find(
+                                                    (a) => a.provider === 'gmail' && a.isConnected,
+                                                )?.email
+                                            }
+                                        </p>
+                                        <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-tight">
+                                            Active Sync
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -146,8 +170,12 @@ const EmailAgentPage: React.FC = () => {
                 <div className="max-w-4xl w-full mx-auto">
                     <div className="flex items-end justify-between mb-10">
                         <div>
-                            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Inbox Feed</h1>
-                            <p className="text-slate-500 mt-1 font-medium italic">Latest 3 signals from your digital workflow</p>
+                            <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+                                Inbox Feed
+                            </h1>
+                            <p className="text-slate-500 mt-1 font-medium italic">
+                                Latest 3 signals from your digital workflow
+                            </p>
                         </div>
                         {isConnected && (
                             <button
@@ -165,8 +193,13 @@ const EmailAgentPage: React.FC = () => {
                             <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mb-6 text-slate-200">
                                 <Mail size={40} />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-800 mb-2">Workspace Disconnected</h3>
-                            <p className="text-slate-400 text-sm mb-8 max-w-xs text-center font-medium">Please connect your Gmail account to synchronize your workspace reminders.</p>
+                            <h3 className="text-xl font-bold text-slate-800 mb-2">
+                                Workspace Disconnected
+                            </h3>
+                            <p className="text-slate-400 text-sm mb-8 max-w-xs text-center font-medium">
+                                Please connect your Gmail account to synchronize your workspace
+                                reminders.
+                            </p>
                             <button
                                 onClick={handleConnectGmail}
                                 className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black text-sm hover:bg-indigo-700 transition-all shadow-2xl shadow-indigo-100 active:scale-95"
@@ -176,8 +209,11 @@ const EmailAgentPage: React.FC = () => {
                         </div>
                     ) : isLoading ? (
                         <div className="space-y-6 animate-pulse">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="h-28 bg-white rounded-3xl border border-slate-200" />
+                            {[1, 2, 3].map((i) => (
+                                <div
+                                    key={i}
+                                    className="h-28 bg-white rounded-3xl border border-slate-200"
+                                />
                             ))}
                         </div>
                     ) : emails.length === 0 ? (
@@ -186,8 +222,11 @@ const EmailAgentPage: React.FC = () => {
                         </div>
                     ) : (
                         <div className="space-y-6">
-                            {emails.map(email => (
-                                <div key={email.id} className="bg-white p-6 rounded-[2rem] border border-slate-200/60 shadow-sm hover:shadow-xl hover:translate-y-[-2px] transition-all group relative overflow-hidden">
+                            {emails.map((email) => (
+                                <div
+                                    key={email.id}
+                                    className="bg-white p-6 rounded-[2rem] border border-slate-200/60 shadow-sm hover:shadow-xl hover:translate-y-[-2px] transition-all group relative overflow-hidden"
+                                >
                                     <div className="absolute top-0 left-0 w-1.5 h-full bg-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                                     <div className="flex justify-between items-start mb-4">
                                         <div className="flex items-center gap-4">
@@ -195,15 +234,27 @@ const EmailAgentPage: React.FC = () => {
                                                 {email.from[0].toUpperCase()}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-black text-slate-900 leading-none mb-1.5">{email.from.split('<')[0].trim() || email.from}</p>
-                                                <p className="text-[11px] text-slate-400 font-bold lowercase tracking-tight opacity-75">{email.from.includes('<') ? email.from.split('<')[1].replace('>', '') : ''}</p>
+                                                <p className="text-sm font-black text-slate-900 leading-none mb-1.5">
+                                                    {email.from.split('<')[0].trim() || email.from}
+                                                </p>
+                                                <p className="text-[11px] text-slate-400 font-bold lowercase tracking-tight opacity-75">
+                                                    {email.from.includes('<')
+                                                        ? email.from.split('<')[1].replace('>', '')
+                                                        : ''}
+                                                </p>
                                             </div>
                                         </div>
-                                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-full">{new Date(email.timestamp).toLocaleDateString()}</span>
+                                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-full">
+                                            {new Date(email.timestamp).toLocaleDateString()}
+                                        </span>
                                     </div>
                                     <div className="pl-16">
-                                        <p className="text-sm font-bold text-slate-800 mb-2 leading-snug">{email.subject}</p>
-                                        <p className="text-xs text-slate-500 leading-relaxed font-medium line-clamp-2 opacity-80">{email.content}</p>
+                                        <p className="text-sm font-bold text-slate-800 mb-2 leading-snug">
+                                            {email.subject}
+                                        </p>
+                                        <p className="text-xs text-slate-500 leading-relaxed font-medium line-clamp-2 opacity-80">
+                                            {email.content}
+                                        </p>
                                     </div>
                                 </div>
                             ))}
@@ -212,8 +263,13 @@ const EmailAgentPage: React.FC = () => {
 
                     <div className="mt-16 p-8 bg-slate-900 rounded-[2.5rem] text-white shadow-2xl shadow-indigo-200 flex items-center justify-between overflow-hidden relative border border-slate-800">
                         <div className="relative z-10">
-                            <h2 className="text-2xl font-black mb-3 tracking-tight">Seamless Workflow</h2>
-                            <p className="text-slate-400 text-sm max-w-sm font-medium leading-relaxed">Your workflow is now unified. Tasks marked for reminders will bypass manual checks and reach your inbox instantly.</p>
+                            <h2 className="text-2xl font-black mb-3 tracking-tight">
+                                Seamless Workflow
+                            </h2>
+                            <p className="text-slate-400 text-sm max-w-sm font-medium leading-relaxed">
+                                Your workflow is now unified. Tasks marked for reminders will bypass
+                                manual checks and reach your inbox instantly.
+                            </p>
                         </div>
                         <div className="absolute right-[-20px] bottom-[-20px] opacity-10">
                             <Check size={200} />

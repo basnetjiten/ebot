@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -69,6 +70,7 @@ const ReflectionPage: React.FC<ReflectionPageProps> = ({
     chatEndRef,
     onToggleTodo: _onToggleTodo,
 }) => {
+    const location = useLocation();
     return (
         <div className="flex-1 flex flex-col h-screen bg-slate-50 relative overflow-hidden">
             {/* Background Gradient Blob */}
@@ -93,18 +95,45 @@ const ReflectionPage: React.FC<ReflectionPageProps> = ({
                     </div>
                 </div>
 
-                {!isCompleted && messages.length > 0 && (
-                    <button
-                        onClick={handleComplete}
-                        disabled={isSubmitting}
-                        className="group flex items-center gap-3 px-8 py-3.5 bg-slate-800 text-white rounded-full font-bold text-sm hover:bg-slate-900 transition-all shadow-lg shadow-slate-200 hover:shadow-xl hover:scale-105 active:scale-95 disabled:opacity-50"
-                    >
-                        <div className="w-6 h-6 bg-slate-700 rounded-full flex items-center justify-center group-hover:bg-emerald-500 transition-colors">
-                            <HiCheck size={14} />
-                        </div>
-                        Finish Session
-                    </button>
-                )}
+                <div className="flex items-center gap-3">
+                    {/* Navigation Tabs */}
+                    <div className="bg-slate-100 rounded-full p-1 flex gap-1">
+                        <Link
+                            to="/reflection"
+                            className={`rounded-full px-4 py-2 text-sm font-bold transition-all ${
+                                location.pathname === '/reflection'
+                                    ? 'bg-white shadow text-slate-800'
+                                    : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            Recent Chat
+                        </Link>
+                        <Link
+                            to="/new-reflection"
+                            className={`rounded-full px-4 py-2 text-sm font-bold transition-all ${
+                                location.pathname === '/new-reflection'
+                                    ? 'bg-white shadow text-slate-800'
+                                    : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            New Reflection
+                        </Link>
+                    </div>
+
+                    {/* Finish Session Button */}
+                    {!isCompleted && messages.length > 0 && (
+                        <button
+                            onClick={handleComplete}
+                            disabled={isSubmitting}
+                            className="group flex items-center gap-3 px-8 py-3.5 bg-slate-800 text-white rounded-full font-bold text-sm hover:bg-slate-900 transition-all shadow-lg shadow-slate-200 hover:shadow-xl hover:scale-105 active:scale-95 disabled:opacity-50"
+                        >
+                            <div className="w-6 h-6 bg-slate-700 rounded-full flex items-center justify-center group-hover:bg-emerald-500 transition-colors">
+                                <HiCheck size={14} />
+                            </div>
+                            Finish Session
+                        </button>
+                    )}
+                </div>
             </header>
 
             {/* Todo Completion Warning */}
