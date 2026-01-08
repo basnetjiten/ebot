@@ -7,7 +7,7 @@ export const config = {
     env: process.env.NODE_ENV || 'development',
     port: parseInt(process.env.PORT || '3000', 10),
     google: {
-        apiKey: process.env.GOOLE_EMAIL_API_KEY!,
+        apiKey: process.env.GOOGLE_API_KEY!,
         clientId: process.env.GOOGLE_CLIENT_ID!,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
         redirectUri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/email/callback',

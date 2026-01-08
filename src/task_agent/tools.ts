@@ -12,7 +12,9 @@ import { database } from '../storage/database';
 export class TaskTools {
     static async extractTaskDetails(messages: any[], currentPartialTask: any): Promise<ParsedTask> {
         try {
-            const systemPrompt = buildSystemPrompt();
+            const now = new Date();
+            const currentTimeStr = `${now.toString()} (ISO: ${now.toISOString()})`;
+            const systemPrompt = buildSystemPrompt(currentTimeStr);
             const userContext = `
     Current partial task state:
     ${JSON.stringify(currentPartialTask, null, 2)}
@@ -70,8 +72,14 @@ export class TaskTools {
     }
 
     static async generateConfirmationPrompt(task: any): Promise<string> {
+        const now = new Date();
+        const currentTimeStr = `${now.toString()} (ISO: ${now.toISOString()})`;
         const prompt = `
      You're confirming task details with someone in a friendly way.
+     The current time is ${currentTimeStr}.
+
+     IMPORTANT: When displaying times to the user, ALWAYS use their LOCAL time (based on the current time provided above).
+     Do NOT show UTC times if they differ from the user's local context.
 
      Task details:
      Title: ${task.title}
@@ -110,21 +118,7 @@ Create this task?"
             status: 'pending',
         } as any);
 
-        // If it's an email task, try to send it immediately
-        if (partialTask.type === 'email' && partialTask.data) {
-            const { to, subject, body } = partialTask.data;
-            if (to && subject && body) {
-                const accounts = await database.getEmailAccounts(userId);
-                const account = accounts.find((a) => a.isConnected);
-                if (account) {
-                    const success = await EmailService.sendEmail(account, to, subject, body);
-                    if (success) {
-                        await taskStore.updateTaskStatus(task.id, 'completed');
-                        task.status = 'completed';
-                    }
-                }
-            }
-        }
+
 
         return task;
     }

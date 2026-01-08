@@ -67,6 +67,50 @@ export class TaskStore {
         })) as unknown as Task[];
     }
 
+    async getDueTasks(): Promise<Task[]> {
+        await this.ensureConnection();
+        const now = new Date().toISOString();
+
+        console.log(`[TaskStore] Querying for due tasks. Current time (ISO): ${now}`);
+
+        // First, let's see ALL pending tasks for debugging
+        const allPending = await this.tasks!.find({ status: 'pending' } as any).toArray();
+        console.log(`[TaskStore] Total pending tasks in DB: ${allPending.length}`);
+
+        if (allPending.length > 0) {
+            allPending.forEach((task: any) => {
+                const triggerTime = task.data?.triggerTime;
+                const startTime = task.data?.startTime;
+                console.log(`[TaskStore] Pending task: "${task.title}"`, {
+                    triggerTime,
+                    startTime,
+                    triggerPassed: triggerTime ? triggerTime <= now : 'N/A',
+                    startPassed: startTime ? startTime <= now : 'N/A',
+                });
+            });
+        }
+
+        // Find pending tasks where triggerTime or startTime has passed
+        const results = await this.tasks!
+            .find({
+                status: 'pending',
+                $or: [
+                    { 'data.triggerTime': { $lte: now } },
+                    { 'data.startTime': { $lte: now } },
+                ],
+            } as any)
+            .toArray();
+
+        console.log(`[TaskStore] Found ${results.length} pending tasks with past trigger/start times`);
+
+        const mapped = results.map((doc) => ({
+            ...doc,
+            id: (doc as any)._id.toHexString(),
+        })) as unknown as Task[];
+
+        return mapped;
+    }
+
     async updateTaskStatus(taskId: string, status: Task['status']): Promise<Task | null> {
         return this.updateTask(taskId, { status });
     }

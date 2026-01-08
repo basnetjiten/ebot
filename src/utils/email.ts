@@ -26,7 +26,7 @@ export class EmailService {
     /**
      * Generates a Google OAuth2 consent URL
      */
-    static getAuthUrl() {
+    static getAuthUrl(state?: string) {
         const client = this.getOAuth2Client();
         return client.generateAuthUrl({
             access_type: 'offline',
@@ -36,6 +36,7 @@ export class EmailService {
                 'https://www.googleapis.com/auth/userinfo.email',
             ],
             prompt: 'consent',
+            state: state,
         });
     }
 
@@ -66,41 +67,40 @@ export class EmailService {
     ): Promise<boolean> {
         console.log(`[EmailService] Sending email to ${to} using ${account.email}`);
 
-        if (account.type === 'oauth2' && account.oauth) {
-            try {
-                const auth = this.getOAuth2Client(account.oauth);
-                const gmail = google.gmail({ version: 'v1', auth });
-
-                const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
-                const messageParts = [
-                    `From: ${account.email}`,
-                    `To: ${to}`,
-                    'Content-Type: text/plain; charset=utf-8',
-                    'MIME-Version: 1.0',
-                    `Subject: ${utf8Subject}`,
-                    '',
-                    content,
-                ];
-                const message = messageParts.join('\n');
-                const encodedMessage = Buffer.from(message)
-                    .toString('base64')
-                    .replace(/\+/g, '-')
-                    .replace(/\//g, '_')
-                    .replace(/=+$/, '');
-
-                await gmail.users.messages.send({
-                    userId: 'me',
-                    requestBody: { raw: encodedMessage },
-                });
-                return true;
-            } catch (error) {
-                console.error('[EmailService] Gmail API error:', error);
+        try {
+            if (!account.oauth) {
+                console.error('[EmailService] No OAuth tokens for account:', account.email);
                 return false;
             }
-        }
+            const auth = this.getOAuth2Client(account.oauth);
+            const gmail = google.gmail({ version: 'v1', auth });
 
-        // Fallback or legacy SMTP (could re-enable nodemailer here if needed)
-        return true;
+            const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
+            const messageParts = [
+                `From: ${account.email}`,
+                `To: ${to}`,
+                'Content-Type: text/plain; charset=utf-8',
+                'MIME-Version: 1.0',
+                `Subject: ${utf8Subject}`,
+                '',
+                content,
+            ];
+            const message = messageParts.join('\n');
+            const encodedMessage = Buffer.from(message)
+                .toString('base64')
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '');
+
+            await gmail.users.messages.send({
+                userId: 'me',
+                requestBody: { raw: encodedMessage },
+            });
+            return true;
+        } catch (error) {
+            console.error('[EmailService] Gmail API error:', error);
+            return false;
+        }
     }
 
     /**
@@ -111,14 +111,30 @@ export class EmailService {
 
         if (account.type === 'oauth2' && account.oauth) {
             try {
+                // Check if token is expired and refresh if needed
+                const now = Date.now();
+                if (account.oauth.expiryDate && account.oauth.expiryDate < now) {
+                    console.log('[EmailService] Access token expired, refreshing...');
+                    const auth = this.getOAuth2Client();
+                    auth.setCredentials({
+                        refresh_token: account.oauth.refreshToken,
+                    });
+                    const { credentials } = await auth.refreshAccessToken();
+                    account.oauth.accessToken = credentials.access_token!;
+                    account.oauth.expiryDate = credentials.expiry_date!;
+                    console.log('[EmailService] Token refreshed successfully');
+                }
+
                 const auth = this.getOAuth2Client(account.oauth);
                 const gmail = google.gmail({ version: 'v1', auth });
 
+                console.log('[EmailService] Calling Gmail API to list messages...');
                 const response = await gmail.users.messages.list({
                     userId: 'me',
                     maxResults: limit,
                 });
 
+                console.log(`[EmailService] Found ${response.data.messages?.length || 0} messages`);
                 const messages = response.data.messages || [];
                 const fetchedEmails: EmailMessage[] = [];
 
@@ -154,9 +170,16 @@ export class EmailService {
                     });
                 }
 
+                console.log(`[EmailService] Successfully fetched ${fetchedEmails.length} emails`);
                 return fetchedEmails;
-            } catch (error) {
+            } catch (error: any) {
                 console.error('[EmailService] Gmail API error:', error);
+                console.error('[EmailService] Error details:', {
+                    message: error.message,
+                    code: error.code,
+                    errors: error.errors,
+                    stack: error.stack?.split('\n').slice(0, 3).join('\n')
+                });
                 return [];
             }
         }

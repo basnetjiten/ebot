@@ -473,17 +473,45 @@ export class MongoDatabase implements IDatabase {
     // Email account operations
     async addEmailAccount(userId: string, accountData: Omit<EmailAccount, 'id'>): Promise<EmailAccount> {
         await this.ensureConnection();
-        const account: EmailAccount = {
-            id: uuidv4(),
-            ...accountData,
-        };
 
-        const updateDoc: any = { $push: { emailAccounts: account } };
-        if (account.provider === 'gmail') {
-            updateDoc.$set = { isGmailConnected: true };
+        const user = await this.getUser(userId);
+        if (!user) {
+            // Create user if not exists (should already exist though)
+            const newUser: User = {
+                id: userId,
+                createdAt: new Date(),
+                preferences: {
+                    feedbackStyle: 'encouraging',
+                    moodTrackingEnabled: true,
+                    summaryFrequency: 'daily',
+                },
+                emailAccounts: [],
+                isGmailConnected: false,
+            };
+            await this.users!.insertOne(newUser as any);
         }
 
-        await this.users!.updateOne({ id: userId } as any, updateDoc, { upsert: true });
+        const updatedUser = await this.getUser(userId);
+        const accounts = updatedUser?.emailAccounts || [];
+        const existingIndex = accounts.findIndex(a => a.email === accountData.email);
+
+        let account: EmailAccount;
+        if (existingIndex > -1) {
+            account = { ...accounts[existingIndex], ...accountData };
+            accounts[existingIndex] = account;
+        } else {
+            account = { id: uuidv4(), ...accountData };
+            accounts.push(account);
+        }
+
+        const updateDoc: any = {
+            $set: {
+                emailAccounts: accounts,
+                isGmailConnected: accounts.some(a => a.provider === 'gmail' && a.isConnected)
+            }
+        };
+
+        await this.users!.updateOne({ id: userId } as any, updateDoc);
 
         return account;
     }

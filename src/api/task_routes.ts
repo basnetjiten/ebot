@@ -28,6 +28,8 @@ router.post('/chat', async (req, res) => {
             partialTask: previousState?.partialTask || {},
             missingFields: previousState?.missingFields || [],
             isConfirmationPending: previousState?.isConfirmationPending || false,
+            isWaitingForEmailChoice: previousState?.isWaitingForEmailChoice || false,
+            lastCreatedTaskId: previousState?.lastCreatedTaskId,
         };
 
         const result = await taskAgent.invoke(inputs, config);
@@ -43,6 +45,8 @@ router.post('/chat', async (req, res) => {
                 missingFields: result.missingFields,
                 isConfirmationPending: result.isConfirmationPending,
                 isComplete: result.isComplete,
+                isWaitingForEmailChoice: result.isWaitingForEmailChoice,
+                lastCreatedTaskId: result.lastCreatedTaskId,
             },
         });
     } catch (error) {

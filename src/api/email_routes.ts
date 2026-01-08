@@ -9,7 +9,8 @@ const router = Router();
 // Get Google OAuth URL
 router.get('/auth-url', (req, res) => {
     try {
-        const url = EmailService.getAuthUrl();
+        const { userId } = req.query;
+        const url = EmailService.getAuthUrl(userId as string);
         res.json({ success: true, data: url });
     } catch (error: any) {
         res.status(500).json({ success: false, error: error.message });
@@ -25,9 +26,9 @@ router.get('/callback', async (req, res) => {
         const tokens = await EmailService.getTokensFromCode(code as string);
         const email = await EmailService.getUserEmail(tokens);
 
-        // We need a way to know which user this is. 
-        // For simplicity in this demo, we'll expect the caller to pass userId in the 'state' param
-        const userId = (state as string) || 'test-user';
+        // state contains the userId passed in /auth-url
+        // fallback to the actual email if state is missing (since user.id === email)
+        const userId = (state as string) || email;
 
         const account = await database.addEmailAccount(userId, {
             email,

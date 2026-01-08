@@ -47,7 +47,7 @@ export interface HabitTask extends BaseTask {
 export interface ReminderTask extends BaseTask {
     type: 'reminder';
     data: {
-        time: string;
+        triggerTime: string;
         isRecurring?: boolean;
         recurrencePattern?: string;
         remindViaEmail?: boolean;

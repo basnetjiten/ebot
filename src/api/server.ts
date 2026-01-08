@@ -13,6 +13,7 @@ import {
 } from './routes';
 import taskRoutes from './task_routes';
 import emailRoutes from './email_routes';
+import { taskWorker } from '../task_agent/worker';
 
 const app = express();
 // const PORT = config.port; // Removed as per instruction
@@ -68,6 +69,9 @@ export const startServer = () => {
         console.log(`Reflection Agent API server running on port ${config.port}`);
         console.log(`Health check: http://localhost:${config.port}/health`);
         console.log(`API docs: http://localhost:${config.port}/`);
+
+        // Start background worker
+        taskWorker.start();
     });
 };
 

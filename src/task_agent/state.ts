@@ -35,4 +35,7 @@ export const TaskStateAnnotation = Annotation.Root({
     isWaitingForEmailChoice: Annotation<boolean>({
         reducer: (x, y) => y ?? x,
     }),
+    isDone: Annotation<boolean>({
+        reducer: (x, y) => y ?? x,
+    }),
 });

@@ -21,6 +21,7 @@ export const parseRequestNode = async (state: typeof TaskStateAnnotation.State) 
                     isWaitingForEmailChoice: false,
                     lastCreatedTaskId: undefined,
                     partialTask: {},
+                    isDone: true, // Signal that we're done with this conversation
                 };
             } else {
                 return {
@@ -28,6 +29,7 @@ export const parseRequestNode = async (state: typeof TaskStateAnnotation.State) 
                     isWaitingForEmailChoice: false,
                     lastCreatedTaskId: undefined,
                     partialTask: {},
+                    isDone: true, // Signal that we're done with this conversation
                 };
             }
         }
@@ -87,6 +89,11 @@ export const askClarificationNode = async (state: typeof TaskStateAnnotation.Sta
 export const confirmTaskNode = async (state: typeof TaskStateAnnotation.State) => {
     console.log('Confirming task...');
 
+    // Skip confirmation if we're waiting for email choice
+    if (state.isWaitingForEmailChoice) {
+        return {};
+    }
+
     // Check if user has just said "yes" or "confirmed"
     const lastMessage = state.messages[state.messages.length - 1].content.toLowerCase();
 
@@ -139,6 +146,10 @@ export const saveTaskNode = async (state: typeof TaskStateAnnotation.State) => {
 };
 
 export const routeNode = (state: typeof TaskStateAnnotation.State) => {
+    // If we just handled an email choice or other completion, end the flow
+    if (state.isDone) {
+        return END;
+    }
     if (state.isComplete) {
         return 'saveTask';
     }

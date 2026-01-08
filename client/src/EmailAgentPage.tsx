@@ -56,7 +56,7 @@ const EmailAgentPage: React.FC = () => {
 
     const handleConnectGmail = async () => {
         try {
-            const res = await fetch('http://localhost:3000/api/email/auth-url');
+            const res = await fetch(`http://localhost:3000/api/email/auth-url?userId=${userId}`);
             const data = await res.json();
             if (data.success) {
                 const width = 500;
@@ -65,7 +65,7 @@ const EmailAgentPage: React.FC = () => {
                 const top = window.screenY + (window.outerHeight - height) / 2;
 
                 window.open(
-                    `${data.data}&state=${userId}`,
+                    data.data,
                     'Connect Gmail',
                     `width=${width},height=${height},left=${left},top=${top}`
                 );
