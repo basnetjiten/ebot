@@ -85,11 +85,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
 
                         <div className="flex items-center justify-between mb-6 relative z-10">
                             <div
-                                className={`p-3 rounded-2xl transition-transform group-hover:scale-110 duration-300 ${
-                                    reflection.type === 'morning'
-                                        ? 'bg-amber-50 text-amber-500 ring-1 ring-amber-100'
-                                        : 'bg-indigo-50 text-indigo-500 ring-1 ring-indigo-100'
-                                }`}
+                                className={`p-3 rounded-2xl transition-transform group-hover:scale-110 duration-300 ${reflection.type === 'morning'
+                                    ? 'bg-amber-50 text-amber-500 ring-1 ring-amber-100'
+                                    : 'bg-indigo-50 text-indigo-500 ring-1 ring-indigo-100'
+                                    }`}
                             >
                                 {reflection.type === 'morning' ? (
                                     <HiSun size={24} />
@@ -241,11 +240,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                                     <HiArrowLeft size={24} />
                                 </button>
                                 <div
-                                    className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-[0.2em] shadow-sm ${
-                                        selectedReflection.type === 'morning'
-                                            ? 'bg-amber-50 text-amber-600 ring-1 ring-amber-100'
-                                            : 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100'
-                                    }`}
+                                    className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-[0.2em] shadow-sm ${selectedReflection.type === 'morning'
+                                        ? 'bg-amber-50 text-amber-600 ring-1 ring-amber-100'
+                                        : 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100'
+                                        }`}
                                 >
                                     {selectedReflection.type} Mode
                                 </div>
@@ -318,11 +316,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                                                                                 todo.isCompleted,
                                                                             );
                                                                         }}
-                                                                        className={`mt-1 shrink-0 w-6 h-6 rounded-lg border flex items-center justify-center transition-all ${
-                                                                            todo.isCompleted
-                                                                                ? 'bg-emerald-500 border-emerald-500 text-white'
-                                                                                : 'bg-white border-slate-200 hover:border-emerald-400'
-                                                                        }`}
+                                                                        className={`mt-1 shrink-0 w-6 h-6 rounded-lg border flex items-center justify-center transition-all ${todo.isCompleted
+                                                                            ? 'bg-emerald-500 border-emerald-500 text-white'
+                                                                            : 'bg-white border-slate-200 hover:border-emerald-400'
+                                                                            }`}
                                                                     >
                                                                         {todo.isCompleted && (
                                                                             <HiCheck size={14} />

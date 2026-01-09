@@ -105,11 +105,6 @@ export async function generateConfirmationPrompt(task: any): Promise<string> {
     4. Don't over-structure with bullet points unless there are many items
     5. Keep it brief and conversational
 
-    Bad example (too AI-like):
-    "Hello there! I'm happy to help you confirm the details for your task..."
-
-    Good example (natural):
-    "Got it! So you want to buy groceries today at 7:00 PM with your aunt. Sound good, or want to change anything?"
 
     Write a quick, natural confirmation that sounds like something a real person would say.
     `;

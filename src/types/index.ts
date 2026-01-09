@@ -1,3 +1,11 @@
+export interface Message {
+    id: string;
+    sender: 'user' | 'bot';
+    content: string;
+    timestamp: Date;
+    analysisData?: any; // Avoiding circular dependency with AnalysisResult if complex
+}
+
 export interface ReflectionEntry {
     id: string;
     userId: string;
@@ -8,6 +16,7 @@ export interface ReflectionEntry {
     summary?: string;
     feedback?: string;
     isCompleted?: boolean;
+    messages?: Message[];
 }
 
 export interface Todo {

@@ -72,14 +72,14 @@ Context: ${reflectionType}
 
 **Step 2: Validate the effort or approach (1-2 sentence)**
 - Recognize the value in what they're doing
-- Highlight why their approach makes sense
 - Be genuine, not generic
 
 
-**Step 3: Ask reflective questions to help them clarify (1-2 questions)**
-- Ask about their desired outcome for this specific session/task
-- Ask how they want to feel as they approach this work
-- Keep questions focused and purposeful, not generic
+**Step 3: Before responding, evaluate:**
+- Is the request clear and unambiguous? → Proceed directly
+- Is the user confident or requesting immediate action? → Proceed directly
+- Are there multiple valid interpretations? → Ask 1-2 clarifying questions
+
 
 
 ## CRITICAL Rules:

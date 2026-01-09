@@ -3,7 +3,6 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import type { Message, AnalysisResult, ReflectionEntry, UserKeyword, SuggestedTodo } from './types';
 import Sidebar from './Sidebar';
-import DashboardPage from './DashboardPage';
 import ReflectionPage from './ReflectionPage';
 import ChatHistoryPage from './ChatHistoryPage';
 import LoginPage from './LoginPage';
@@ -43,38 +42,47 @@ function App() {
             setHistory(history || []);
             setUserKeywords(keywords || []);
 
-            if (latestReflection) {
+            if (latestReflection && !skipMessages) {
                 setLastReflectionId(latestReflection.id);
                 setReflectionType(latestReflection.type);
 
                 if (!skipMessages) {
                     // Populate messages from the latest reflection
-                    const initialMessages: Message[] = [
-                        {
-                            id: 'init-user',
-                            sender: 'user',
-                            content: latestReflection.content,
-                            timestamp: new Date(latestReflection.timestamp),
-                        },
-                    ];
-
-                    if (analysisData?.feedback) {
-                        initialMessages.push({
-                            id: 'init-bot',
-                            sender: 'bot',
-                            content: analysisData.feedback,
-                            timestamp: new Date(latestReflection.timestamp),
-                            analysisData: {
-                                summary: analysisData.summary,
-                                keywords: analysisData.keywords,
-                                suggestedTodos: analysisData.suggestedTodos,
+                    if (latestReflection.messages && latestReflection.messages.length > 0) {
+                        setMessages(
+                            latestReflection.messages.map((m: any) => ({
+                                ...m,
+                                timestamp: new Date(m.timestamp),
+                            })),
+                        );
+                    } else {
+                        // Fallback for legacy reflections without stored messages
+                        const initialMessages: Message[] = [
+                            {
+                                id: 'init-user',
+                                role: 'user',
+                                content: latestReflection.content,
+                                timestamp: new Date(latestReflection.timestamp),
                             },
-                        });
-                        setAnalysisResult(analysisData);
-                        setIsCompleted(true);
-                    }
+                        ];
 
-                    setMessages(initialMessages);
+                        if (analysisData?.feedback) {
+                            initialMessages.push({
+                                id: 'init-bot',
+                                role: 'assistant',
+                                content: analysisData.feedback,
+                                timestamp: new Date(latestReflection.timestamp),
+                                analysisData: {
+                                    summary: analysisData.summary,
+                                    keywords: analysisData.keywords,
+                                    suggestedTodos: analysisData.suggestedTodos,
+                                },
+                            });
+                            setAnalysisResult(analysisData);
+                            setIsCompleted(true);
+                        }
+                        setMessages(initialMessages);
+                    }
                 }
 
                 // Calculate todo status
@@ -104,16 +112,17 @@ function App() {
 
     useEffect(() => {
         if (userId) {
-            fetchUserData(userId);
+            const isNewReflectionPage = window.location.pathname === '/new-reflection';
+            fetchUserData(userId, isNewReflectionPage);
         } else {
             setIsLoadingData(false);
         }
     }, [userId]);
 
-    const addMessage = (sender: 'user' | 'bot', content: string, analysisData?: AnalysisResult) => {
+    const addMessage = (role: 'user' | 'assistant', content: string, analysisData?: AnalysisResult) => {
         const newMessage: Message = {
             id: Date.now().toString(),
-            sender,
+            role,
             content,
             timestamp: new Date(),
             analysisData,
@@ -137,7 +146,7 @@ function App() {
                 content: userContent,
                 lastReflectionId,
                 messages: messages.map((m) => ({
-                    role: m.sender === 'user' ? 'user' : 'assistant',
+                    role: m.role === 'user' ? 'user' : 'assistant',
                     content: m.content,
                 })),
                 isFinishing: false,
@@ -147,10 +156,10 @@ function App() {
             setLastReflectionId(reflection.id);
 
             // For chat, we only expect feedback, no heavy analysis
-            addMessage('bot', analysis.feedback);
+            addMessage('assistant', analysis.feedback);
         } catch (error) {
             console.error('Submission error:', error);
-            addMessage('bot', 'Sorry, I encountered an error. Please try again.');
+            addMessage('assistant', 'Sorry, I encountered an error. Please try again.');
         } finally {
             setIsSubmitting(false);
         }
@@ -168,7 +177,7 @@ function App() {
                 content: 'Reflection complete', // Placeholder content for the finish action
                 lastReflectionId,
                 messages: messages.map((m) => ({
-                    role: m.sender === 'user' ? 'user' : 'assistant',
+                    role: m.role === 'user' ? 'user' : 'assistant',
                     content: m.content,
                 })),
                 isFinishing: true,
@@ -193,13 +202,18 @@ function App() {
             fetchUserData(userId, true);
         } catch (error) {
             console.error('Completion error:', error);
-            addMessage('bot', 'Sorry, I encountered an error finishing the reflection.');
+            addMessage('assistant', 'Sorry, I encountered an error finishing the reflection.');
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const handleNewChat = () => {
+        setMessages([]);
+        setAnalysisResult(null);
+        setIsCompleted(false);
+        setLastReflectionId(null);
+        setTodoStatus(null);
         navigate('/new-reflection');
     };
 
@@ -254,26 +268,17 @@ function App() {
     };
 
     const handleDeleteReflection = async (reflectionId: string) => {
-        if (!userId) return;
-
         try {
             await axios.delete(`http://localhost:3000/api/reflections/${reflectionId}`);
-
-            // Update local state
-            setHistory((prevHistory) => prevHistory.filter((r) => r.id !== reflectionId));
-
-            // If this was the current reflection, reset the chat
+            setHistory((prev) => prev.filter((r) => r.id !== reflectionId));
             if (lastReflectionId === reflectionId) {
-                setMessages([]);
-                setAnalysisResult(null);
-                setIsCompleted(false);
-                setLastReflectionId(null);
-                setTodoStatus(null);
+                handleNewChat();
             }
         } catch (error) {
             console.error('Error deleting reflection:', error);
         }
     };
+
 
     if (!userId) {
         return (
@@ -281,7 +286,7 @@ function App() {
                 onLoginSuccess={(id) => {
                     setUserId(id);
                     localStorage.setItem('ebot_userId', id);
-                    navigate('/dashboard');
+                    navigate('/new-reflection');
                 }}
             />
         );
@@ -314,46 +319,33 @@ function App() {
 
             <main className="flex-1 flex flex-col h-full bg-slate-50 relative overflow-hidden">
                 <Routes>
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/" element={<Navigate to="/new-reflection" replace />} />
                     <Route
                         path="/reflection"
                         element={
-                            <ChatHistoryPage history={history} onToggleTodo={handleToggleTodo} />
+                            <ChatHistoryPage
+                                history={history}
+                                onToggleTodo={handleToggleTodo}
+                                onDeleteReflection={handleDeleteReflection}
+                            />
                         }
                     />
                     <Route
                         path="/new-reflection"
                         element={
                             <ReflectionPage
-                                messages={[]}
+                                messages={messages}
                                 input={input}
                                 setInput={setInput}
                                 isSubmitting={isSubmitting}
-                                isCompleted={false}
+                                isCompleted={isCompleted}
                                 reflectionType={reflectionType}
                                 setReflectionType={setReflectionType}
-                                handleSubmit={(e) => {
-                                    setMessages([]);
-                                    setLastReflectionId(null);
-                                    setIsCompleted(false);
-                                    setTodoStatus(null);
-                                    handleSubmit(e);
-                                    navigate('/reflection');
-                                }}
+                                handleSubmit={handleSubmit}
                                 handleComplete={handleComplete}
-                                todoStatus={null}
+                                todoStatus={todoStatus}
                                 chatEndRef={chatEndRef}
                                 onToggleTodo={handleToggleTodo}
-                            />
-                        }
-                    />
-                    <Route
-                        path="/dashboard"
-                        element={
-                            <DashboardPage
-                                history={history}
-                                onToggleTodo={handleToggleTodo}
-                                onDeleteReflection={handleDeleteReflection}
                             />
                         }
                     />

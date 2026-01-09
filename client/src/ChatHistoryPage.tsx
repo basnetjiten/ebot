@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { HiSun, HiMoon, HiChatAlt2, HiArrowLeft, HiOutlineDocumentText } from 'react-icons/hi';
+import { HiSun, HiMoon, HiChatAlt2, HiArrowLeft, HiOutlineDocumentText, HiTrash } from 'react-icons/hi';
 import type { ReflectionEntry } from './types';
 import ChatModal from './ChatModal';
+import ConfirmationModal from './ConfirmationModal';
 
 interface ChatHistoryPageProps {
     history: ReflectionEntry[];
     onToggleTodo?: (id: string, currentStatus: boolean) => void;
+    onDeleteReflection: (id: string) => void;
 }
 
-const ChatHistoryPage: React.FC<ChatHistoryPageProps> = ({ history, onToggleTodo }) => {
+const ChatHistoryPage: React.FC<ChatHistoryPageProps> = ({ history, onToggleTodo, onDeleteReflection }) => {
     const [selectedReflection, setSelectedReflection] = useState<ReflectionEntry | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [reflectionToDelete, setReflectionToDelete] = useState<string | null>(null);
 
     const handleCardClick = (reflection: ReflectionEntry) => {
         setSelectedReflection(reflection);
@@ -77,25 +80,24 @@ const ChatHistoryPage: React.FC<ChatHistoryPageProps> = ({ history, onToggleTodo
             >
                 {history.map((reflection) => (
                     <motion.div
+                        layout
                         key={reflection.id}
                         variants={item}
                         onClick={() => handleCardClick(reflection)}
                         className="group bg-white/70 backdrop-blur-xl rounded-[2rem] p-8 border border-white/50 shadow-xl shadow-slate-200/40 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all duration-300 cursor-pointer relative overflow-hidden ring-1 ring-slate-100/50"
                     >
-                        {/* Decorative Gradient Blob */}
+
                         <div
-                            className={`absolute -top-20 -right-20 w-48 h-48 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 ${
-                                reflection.type === 'morning' ? 'bg-amber-400' : 'bg-indigo-600'
-                            }`}
+                            className={`absolute -top-20 -right-20 w-48 h-48 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 ${reflection.type === 'morning' ? 'bg-amber-400' : 'bg-indigo-600'
+                                }`}
                         />
 
                         <div className="flex items-center justify-between mb-6 relative z-10">
                             <div
-                                className={`p-3 rounded-2xl transition-transform group-hover:scale-110 duration-300 ${
-                                    reflection.type === 'morning'
-                                        ? 'bg-amber-50 text-amber-500 ring-1 ring-amber-100'
-                                        : 'bg-indigo-50 text-indigo-500 ring-1 ring-indigo-100'
-                                }`}
+                                className={`p-3 rounded-2xl transition-transform group-hover:scale-110 duration-300 ${reflection.type === 'morning'
+                                    ? 'bg-amber-50 text-amber-500 ring-1 ring-amber-100'
+                                    : 'bg-indigo-50 text-indigo-500 ring-1 ring-indigo-100'
+                                    }`}
                             >
                                 {reflection.type === 'morning' ? (
                                     <HiSun size={24} />
@@ -109,6 +111,18 @@ const ChatHistoryPage: React.FC<ChatHistoryPageProps> = ({ history, onToggleTodo
                                     day: 'numeric',
                                 })}
                             </span>
+                            <motion.button
+                                whileHover={{ scale: 1.1, rotate: 5 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setReflectionToDelete(reflection.id);
+                                }}
+                                className="p-2 rounded-full bg-white/80 text-rose-400 shadow-sm ml-2 border border-rose-100"
+                                title="Delete Reflection"
+                            >
+                                <HiTrash size={16} />
+                            </motion.button>
                         </div>
 
                         <h3 className="text-xl font-black text-slate-800 mb-3 group-hover:text-indigo-600 transition-colors capitalize tracking-tight flex items-center gap-2">
@@ -159,6 +173,21 @@ const ChatHistoryPage: React.FC<ChatHistoryPageProps> = ({ history, onToggleTodo
                 onClose={handleCloseModal}
                 reflection={selectedReflection}
                 onToggleTodo={onToggleTodo}
+            />
+
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={!!reflectionToDelete}
+                onClose={() => setReflectionToDelete(null)}
+                onConfirm={() => {
+                    if (reflectionToDelete) {
+                        onDeleteReflection(reflectionToDelete);
+                    }
+                }}
+                title="Delete Reflection?"
+                message="This action cannot be undone. Are you sure you want to permanently delete it?"
+                confirmText="Delete"
+                isDangerous={true}
             />
         </div>
     );

@@ -17,30 +17,31 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, reflection, onTo
 
     if (!reflection) return null;
 
-    // Parse the conversation from the reflection content
-    const messages: Array<{
-        id: string;
-        sender: 'user' | 'bot';
-        content: string;
-        timestamp: Date;
-    }> = [
-        {
-            id: 'user-msg',
-            sender: 'user',
-            content: reflection.content,
-            timestamp: new Date(reflection.timestamp),
-        },
-    ];
-
-    // Add AI response if available
-    if (reflection.summary) {
-        messages.push({
-            id: 'ai-msg',
-            sender: 'bot',
-            content: reflection.summary,
-            timestamp: new Date(reflection.timestamp),
-        });
-    }
+    // Use stored messages if available, otherwise fallback to parsed content
+    const messages =
+        reflection.messages && reflection.messages.length > 0
+            ? reflection.messages.map((msg) => ({
+                ...msg,
+                timestamp: new Date(msg.timestamp),
+            }))
+            : [
+                {
+                    id: 'user-msg',
+                    role: 'user' as const,
+                    content: reflection.content,
+                    timestamp: new Date(reflection.timestamp),
+                },
+                ...(reflection.summary
+                    ? [
+                        {
+                            id: 'ai-msg',
+                            role: 'assistant' as const,
+                            content: reflection.summary,
+                            timestamp: new Date(reflection.timestamp),
+                        },
+                    ]
+                    : []),
+            ];
 
     return (
         <AnimatePresence>
@@ -57,13 +58,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, reflection, onTo
                         initial={{ opacity: 0, scale: 0.95, y: 30 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 30 }}
-                        className="relative w-full max-w-5xl bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col border border-white/50"
+                        className="relative w-full max-w-5xl bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-2xl overflow-hidden h-[65vh] flex flex-col border border-white/50"
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
                             <div>
                                 <h2 className="text-2xl font-black text-slate-800">
-                                    {reflection.type === 'morning' ? '🌅 Morning' : '🌙 Evening'}{' '}
+                                    {reflection.type === 'morning' ? 'Morning' : 'Evening'}{' '}
                                     Reflection
                                 </h2>
                                 <p className="text-sm text-slate-500 font-medium mt-1">
@@ -88,22 +89,20 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, reflection, onTo
                             <div className="inline-flex bg-slate-100 rounded-full p-1 gap-1">
                                 <button
                                     onClick={() => setActiveTab('chat')}
-                                    className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-sm transition-all ${
-                                        activeTab === 'chat'
-                                            ? 'bg-white text-indigo-600 shadow-md shadow-indigo-500/10'
-                                            : 'text-slate-500 hover:text-slate-700'
-                                    }`}
+                                    className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-sm transition-all ${activeTab === 'chat'
+                                        ? 'bg-white text-indigo-600 shadow-md shadow-indigo-500/10'
+                                        : 'text-slate-500 hover:text-slate-700'
+                                        }`}
                                 >
                                     <HiChatAlt2 size={18} />
                                     Chat
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('insights')}
-                                    className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-sm transition-all ${
-                                        activeTab === 'insights'
-                                            ? 'bg-white text-indigo-600 shadow-md shadow-indigo-500/10'
-                                            : 'text-slate-500 hover:text-slate-700'
-                                    }`}
+                                    className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-sm transition-all ${activeTab === 'insights'
+                                        ? 'bg-white text-indigo-600 shadow-md shadow-indigo-500/10'
+                                        : 'text-slate-500 hover:text-slate-700'
+                                        }`}
                                 >
                                     <HiLightBulb size={18} />
                                     Insights
@@ -119,17 +118,19 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, reflection, onTo
                                     {messages.map((msg) => (
                                         <div
                                             key={msg.id}
-                                            className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                                            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                         >
                                             <div
-                                                className={`max-w-[85%] flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+                                                className={`max-w-[85%] flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
                                             >
+                                                <span className="text-xs text-slate-400 mb-2 px-2 font-bold uppercase tracking-wider">
+                                                    {msg.role === 'assistant' ? 'Reflectly' : 'You'}
+                                                </span>
                                                 <div
-                                                    className={`rounded-[2rem] px-8 py-6 text-sm lg:text-base leading-relaxed break-words shadow-sm ${
-                                                        msg.sender === 'user'
-                                                            ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-tr-none'
-                                                            : 'bg-slate-50 text-slate-800 rounded-tl-none border border-slate-200'
-                                                    }`}
+                                                    className={`rounded-[2rem] px-8 py-6 text-sm lg:text-base leading-relaxed break-words shadow-sm ${msg.role === 'user'
+                                                        ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-tr-none'
+                                                        : 'bg-slate-50 text-slate-800 rounded-tl-none border border-slate-200'
+                                                        }`}
                                                 >
                                                     <div className="prose prose-sm max-w-none">
                                                         <ReactMarkdown
@@ -137,14 +138,14 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, reflection, onTo
                                                             components={{
                                                                 p: ({ ...props }) => (
                                                                     <p
-                                                                        className={`mb-3 last:mb-0 ${msg.sender === 'user' ? 'text-indigo-50' : 'text-slate-600'}`}
+                                                                        className={`mb-3 last:mb-0 ${msg.role === 'user' ? 'text-indigo-50' : 'text-slate-600'}`}
                                                                         {...props}
                                                                     />
                                                                 ),
                                                                 strong: ({ ...props }) => (
                                                                     <strong
                                                                         className={
-                                                                            msg.sender === 'user'
+                                                                            msg.role === 'user'
                                                                                 ? 'text-white'
                                                                                 : 'text-indigo-600'
                                                                         }
@@ -157,9 +158,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, reflection, onTo
                                                         </ReactMarkdown>
                                                     </div>
                                                 </div>
-                                                <span className="text-xs text-slate-400 mt-2 px-2 font-medium">
-                                                    {msg.sender === 'bot' ? 'Reflectly AI' : 'You'}
-                                                </span>
                                             </div>
                                         </div>
                                     ))}
@@ -222,11 +220,10 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, reflection, onTo
                                                                                     todo.isCompleted,
                                                                                 );
                                                                             }}
-                                                                            className={`mt-1 shrink-0 w-6 h-6 rounded-lg border flex items-center justify-center transition-all ${
-                                                                                todo.isCompleted
-                                                                                    ? 'bg-emerald-500 border-emerald-500 text-white'
-                                                                                    : 'bg-white border-slate-200 hover:border-emerald-400'
-                                                                            }`}
+                                                                            className={`mt-1 shrink-0 w-6 h-6 rounded-lg border flex items-center justify-center transition-all ${todo.isCompleted
+                                                                                ? 'bg-emerald-500 border-emerald-500 text-white'
+                                                                                : 'bg-white border-slate-200 hover:border-emerald-400'
+                                                                                }`}
                                                                         >
                                                                             {todo.isCompleted && (
                                                                                 <HiCheck
@@ -236,11 +233,10 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, reflection, onTo
                                                                         </button>
                                                                         <div>
                                                                             <p
-                                                                                className={`text-sm font-bold transition-all ${
-                                                                                    todo.isCompleted
-                                                                                        ? 'text-slate-400 line-through'
-                                                                                        : 'text-slate-700'
-                                                                                }`}
+                                                                                className={`text-sm font-bold transition-all ${todo.isCompleted
+                                                                                    ? 'text-slate-400 line-through'
+                                                                                    : 'text-slate-700'
+                                                                                    }`}
                                                                             >
                                                                                 {todo.title}
                                                                             </p>

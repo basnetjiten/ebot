@@ -100,21 +100,19 @@ const ReflectionPage: React.FC<ReflectionPageProps> = ({
                     <div className="bg-slate-100 rounded-full p-1 flex gap-1">
                         <Link
                             to="/reflection"
-                            className={`rounded-full px-4 py-2 text-sm font-bold transition-all ${
-                                location.pathname === '/reflection'
-                                    ? 'bg-white shadow text-slate-800'
-                                    : 'text-slate-500 hover:text-slate-700'
-                            }`}
+                            className={`rounded-full px-4 py-2 text-sm font-bold transition-all ${location.pathname === '/reflection'
+                                ? 'bg-white shadow text-slate-800'
+                                : 'text-slate-500 hover:text-slate-700'
+                                }`}
                         >
                             Recent Chat
                         </Link>
                         <Link
                             to="/new-reflection"
-                            className={`rounded-full px-4 py-2 text-sm font-bold transition-all ${
-                                location.pathname === '/new-reflection'
-                                    ? 'bg-white shadow text-slate-800'
-                                    : 'text-slate-500 hover:text-slate-700'
-                            }`}
+                            className={`rounded-full px-4 py-2 text-sm font-bold transition-all ${location.pathname === '/new-reflection'
+                                ? 'bg-white shadow text-slate-800'
+                                : 'text-slate-500 hover:text-slate-700'
+                                }`}
                         >
                             New Reflection
                         </Link>
@@ -185,11 +183,10 @@ const ReflectionPage: React.FC<ReflectionPageProps> = ({
                                 <div className="flex gap-6 mt-8 w-full max-w-lg justify-center">
                                     <button
                                         onClick={() => setReflectionType('morning')}
-                                        className={`flex-1 flex flex-col items-center gap-4 p-6 rounded-[2rem] transition-all duration-300 group ${
-                                            reflectionType === 'morning'
-                                                ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-2xl shadow-amber-500/30 scale-105'
-                                                : 'bg-white border-2 border-slate-100 text-slate-400 hover:border-amber-200 hover:bg-amber-50 grayscale hover:grayscale-0'
-                                        }`}
+                                        className={`flex-1 flex flex-col items-center gap-4 p-6 rounded-[2rem] transition-all duration-300 group ${reflectionType === 'morning'
+                                            ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-2xl shadow-amber-500/30 scale-105'
+                                            : 'bg-white border-2 border-slate-100 text-slate-400 hover:border-amber-200 hover:bg-amber-50 grayscale hover:grayscale-0'
+                                            }`}
                                     >
                                         <div
                                             className={`p-4 rounded-2xl ${reflectionType === 'morning' ? 'bg-white/20' : 'bg-slate-50'}`}
@@ -207,11 +204,10 @@ const ReflectionPage: React.FC<ReflectionPageProps> = ({
                                     </button>
                                     <button
                                         onClick={() => setReflectionType('evening')}
-                                        className={`flex-1 flex flex-col items-center gap-4 p-6 rounded-[2rem] transition-all duration-300 group ${
-                                            reflectionType === 'evening'
-                                                ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-2xl shadow-indigo-500/30 scale-105'
-                                                : 'bg-white border-2 border-slate-100 text-slate-400 hover:border-indigo-200 hover:bg-indigo-50 grayscale hover:grayscale-0'
-                                        }`}
+                                        className={`flex-1 flex flex-col items-center gap-4 p-6 rounded-[2rem] transition-all duration-300 group ${reflectionType === 'evening'
+                                            ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-2xl shadow-indigo-500/30 scale-105'
+                                            : 'bg-white border-2 border-slate-100 text-slate-400 hover:border-indigo-200 hover:bg-indigo-50 grayscale hover:grayscale-0'
+                                            }`}
                                     >
                                         <div
                                             className={`p-4 rounded-2xl ${reflectionType === 'evening' ? 'bg-white/20' : 'bg-slate-50'}`}
@@ -232,33 +228,33 @@ const ReflectionPage: React.FC<ReflectionPageProps> = ({
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12 w-full max-w-3xl">
                                     {(reflectionType === 'morning'
                                         ? [
-                                              {
-                                                  title: 'Focus & Energy',
-                                                  desc: 'Identify your top priority for today',
-                                              },
-                                              {
-                                                  title: 'Obstacle Planning',
-                                                  desc: 'Prepare for potential challenges',
-                                              },
-                                              {
-                                                  title: 'Gratitude Start',
-                                                  desc: 'Begin with three positive things',
-                                              },
-                                          ]
+                                            {
+                                                title: 'Focus & Energy',
+                                                desc: 'Identify your top priority for today',
+                                            },
+                                            {
+                                                title: 'Obstacle Planning',
+                                                desc: 'Prepare for potential challenges',
+                                            },
+                                            {
+                                                title: 'Gratitude Start',
+                                                desc: 'Begin with three positive things',
+                                            },
+                                        ]
                                         : [
-                                              {
-                                                  title: 'Daily Wins',
-                                                  desc: 'Log what went well today',
-                                              },
-                                              {
-                                                  title: 'Lessons Learned',
-                                                  desc: 'Capture insights from mistakes',
-                                              },
-                                              {
-                                                  title: 'Mental Reset',
-                                                  desc: 'Clear your mind for rest',
-                                              },
-                                          ]
+                                            {
+                                                title: 'Daily Wins',
+                                                desc: 'Log what went well today',
+                                            },
+                                            {
+                                                title: 'Lessons Learned',
+                                                desc: 'Capture insights from mistakes',
+                                            },
+                                            {
+                                                title: 'Mental Reset',
+                                                desc: 'Clear your mind for rest',
+                                            },
+                                        ]
                                     ).map((tip, i) => (
                                         <button
                                             key={i}
@@ -283,22 +279,21 @@ const ReflectionPage: React.FC<ReflectionPageProps> = ({
                                     initial={{ opacity: 0, y: 20, scale: 0.95 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-                                    className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                 >
                                     <div
-                                        className={`max-w-[85%] lg:max-w-[75%] flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+                                        className={`max-w-[85%] lg:max-w-[75%] flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
                                     >
                                         <div
-                                            className={`rounded-[2rem] px-8 py-6 text-sm lg:text-base leading-relaxed break-words shadow-sm relative ${
-                                                msg.sender === 'user'
-                                                    ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-tr-none shadow-indigo-500/20'
-                                                    : 'bg-white text-slate-800 rounded-tl-none border border-slate-100 shadow-slate-200/50'
-                                            }`}
+                                            className={`rounded-[2rem] px-8 py-6 text-sm lg:text-base leading-relaxed break-words shadow-sm relative ${msg.role === 'user'
+                                                ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-tr-none shadow-indigo-500/20'
+                                                : 'bg-white text-slate-800 rounded-tl-none border border-slate-100 shadow-slate-200/50'
+                                                }`}
                                         >
                                             <div className="prose prose-sm max-w-none prose-p:leading-relaxed">
-                                                {msg.sender === 'bot' &&
-                                                msg === messages[messages.length - 1] &&
-                                                !isCompleted ? (
+                                                {msg.role === 'assistant' &&
+                                                    msg === messages[messages.length - 1] &&
+                                                    !isCompleted ? (
                                                     <Typewriter text={msg.content} speed={10} />
                                                 ) : (
                                                     <ReactMarkdown
@@ -306,7 +301,7 @@ const ReflectionPage: React.FC<ReflectionPageProps> = ({
                                                         components={{
                                                             p: ({ ...props }) => (
                                                                 <p
-                                                                    className={`mb-3 last:mb-0 ${msg.sender === 'user' ? 'text-indigo-50' : 'text-slate-600'}`}
+                                                                    className={`mb-3 last:mb-0 ${msg.role === 'user' ? 'text-indigo-50' : 'text-slate-600'}`}
                                                                     {...props}
                                                                 />
                                                             ),
@@ -331,7 +326,7 @@ const ReflectionPage: React.FC<ReflectionPageProps> = ({
                                                             strong: ({ ...props }) => (
                                                                 <strong
                                                                     className={
-                                                                        msg.sender === 'user'
+                                                                        msg.role === 'user'
                                                                             ? 'text-white'
                                                                             : 'text-indigo-600'
                                                                     }
@@ -340,7 +335,7 @@ const ReflectionPage: React.FC<ReflectionPageProps> = ({
                                                             ),
                                                             code: ({ ...props }) => (
                                                                 <code
-                                                                    className={`${msg.sender === 'user' ? 'bg-indigo-700/50' : 'bg-slate-100'} px-1.5 py-0.5 rounded font-medium`}
+                                                                    className={`${msg.role === 'user' ? 'bg-indigo-700/50' : 'bg-slate-100'} px-1.5 py-0.5 rounded font-medium`}
                                                                     {...props}
                                                                 />
                                                             ),
@@ -353,10 +348,10 @@ const ReflectionPage: React.FC<ReflectionPageProps> = ({
                                         </div>
 
                                         <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-2 px-2 flex items-center gap-1">
-                                            {msg.sender === 'bot' && (
+                                            {msg.role === 'assistant' && (
                                                 <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
                                             )}
-                                            {msg.sender === 'bot' ? 'Reflectly' : 'You'} •{' '}
+                                            {msg.role === 'assistant' ? 'Reflectly' : 'You'} •{' '}
                                             {new Date(msg.timestamp).toLocaleTimeString([], {
                                                 hour: '2-digit',
                                                 minute: '2-digit',

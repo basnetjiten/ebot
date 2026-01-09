@@ -60,6 +60,7 @@ export const submitReflection = async (req: Request, res: Response) => {
                     type,
                     timestamp: new Date(),
                     content,
+                    messages: messages || [],
                 });
             }
         } else {
@@ -70,6 +71,7 @@ export const submitReflection = async (req: Request, res: Response) => {
                 type,
                 timestamp: new Date(),
                 content,
+                messages: messages || [],
             });
         }
 
@@ -107,12 +109,17 @@ export const submitReflection = async (req: Request, res: Response) => {
                 // Delete content to prevent overwriting the session start content with chat message
                 delete updates.content;
 
+                // Update messages as well
+                updates.messages = messages;
+
                 await database.updateReflection(reflection.id, updates);
 
                 // Merge back for response
                 updatedReflectionArgs.content = reflection.content;
             } else {
                 // For new reflection, update everything
+                // For new reflection, update everything including messages
+                updatedReflectionArgs.messages = messages;
                 await database.updateReflection(reflection.id, updatedReflectionArgs);
             }
         }

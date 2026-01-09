@@ -16,7 +16,7 @@ export interface AnalysisResult {
 
 export interface Message {
     id: string;
-    sender: 'user' | 'bot';
+    role: 'user' | 'assistant';
     content: string;
     timestamp: Date;
     analysisData?: AnalysisResult;
@@ -32,6 +32,7 @@ export interface ReflectionEntry {
     keywords?: string[];
     feedback?: string;
     suggestedTodos?: SuggestedTodo[];
+    messages?: Message[];
 }
 
 export interface UserKeyword {
