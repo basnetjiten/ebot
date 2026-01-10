@@ -12,6 +12,7 @@ export interface ReflectionEntry {
     type: 'morning' | 'evening';
     timestamp: Date;
     content: string;
+    title?: string;
     keywords?: string[] | null;
     summary?: string;
     feedback?: string;
@@ -33,6 +34,8 @@ export interface Todo {
 
 export interface User {
     id: string;
+    firstName?: string;
+    lastName?: string;
     createdAt: Date;
     preferences: {
         feedbackStyle: 'encouraging' | 'direct' | 'questioning';

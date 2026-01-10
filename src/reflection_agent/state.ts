@@ -14,6 +14,11 @@ export const StateAnnotation = Annotation.Root({
         default: () => '',
     }),
 
+    userName: Annotation<string>({
+        reducer: (left: string, right: string) => right,
+        default: () => '',
+    }),
+
     // Reflection data
     currentReflection: Annotation<ReflectionEntry | null>({
         reducer: (left: ReflectionEntry | null, right: ReflectionEntry | null) => right,
@@ -27,6 +32,11 @@ export const StateAnnotation = Annotation.Root({
     }),
 
     summary: Annotation<string>({
+        reducer: (left: string, right: string) => right,
+        default: () => '',
+    }),
+
+    title: Annotation<string>({
         reducer: (left: string, right: string) => right,
         default: () => '',
     }),

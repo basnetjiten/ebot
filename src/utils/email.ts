@@ -7,7 +7,7 @@ export class EmailService {
         const oauth2Client = new google.auth.OAuth2(
             config.google.clientId,
             config.google.clientSecret,
-            config.google.redirectUri
+            config.google.redirectUri,
         );
 
         if (tokens) {
@@ -145,13 +145,16 @@ export class EmailService {
                     });
 
                     const headers = detail.data.payload?.headers || [];
-                    const from = headers.find(h => h.name === 'From')?.value || '';
-                    const subject = headers.find(h => h.name === 'Subject')?.value || 'No Subject';
-                    const date = headers.find(h => h.name === 'Date')?.value || '';
+                    const from = headers.find((h) => h.name === 'From')?.value || '';
+                    const subject =
+                        headers.find((h) => h.name === 'Subject')?.value || 'No Subject';
+                    const date = headers.find((h) => h.name === 'Date')?.value || '';
 
                     let content = '';
                     if (detail.data.payload?.parts) {
-                        const part = detail.data.payload.parts.find(p => p.mimeType === 'text/plain');
+                        const part = detail.data.payload.parts.find(
+                            (p) => p.mimeType === 'text/plain',
+                        );
                         if (part?.body?.data) {
                             content = Buffer.from(part.body.data, 'base64').toString();
                         }
@@ -178,7 +181,7 @@ export class EmailService {
                     message: error.message,
                     code: error.code,
                     errors: error.errors,
-                    stack: error.stack?.split('\n').slice(0, 3).join('\n')
+                    stack: error.stack?.split('\n').slice(0, 3).join('\n'),
                 });
                 return [];
             }
@@ -194,7 +197,7 @@ export class EmailService {
                 content: 'Please connect your real Gmail account to see your real emails!',
                 timestamp: new Date(),
                 hasReplied: false,
-            }
+            },
         ];
     }
 

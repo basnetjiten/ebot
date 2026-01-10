@@ -28,6 +28,7 @@ export interface ReflectionEntry {
     timestamp: string;
     content: string;
     type: 'morning' | 'evening';
+    title?: string;
     summary?: string;
     keywords?: string[];
     feedback?: string;

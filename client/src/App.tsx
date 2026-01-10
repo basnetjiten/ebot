@@ -26,6 +26,7 @@ function App() {
     const [userId, setUserId] = useState<string | null>(localStorage.getItem('ebot_userId'));
     const [history, setHistory] = useState<ReflectionEntry[]>([]);
     const [userKeywords, setUserKeywords] = useState<UserKeyword[]>([]);
+    const [userName, setUserName] = useState<string>('');
 
     const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -37,10 +38,17 @@ function App() {
         setIsLoadingData(true);
         try {
             const response = await axios.get(`http://localhost:3000/api/users/${id}/summary`);
-            const { latestReflection, history, keywords, analysisData } = response.data.data;
+            const { latestReflection, history, keywords, analysisData, user } = response.data.data;
 
             setHistory(history || []);
             setUserKeywords(keywords || []);
+
+            // Store user name from response (we could also add a dedicated state for it)
+            // But since ReflectionPage needs it, and we might not want to drill props too deep,
+            // let's add a state for it.
+            if (user && user.firstName) {
+                setUserName(user.firstName);
+            }
 
             if (latestReflection && !skipMessages) {
                 setLastReflectionId(latestReflection.id);
@@ -346,6 +354,7 @@ function App() {
                                 todoStatus={todoStatus}
                                 chatEndRef={chatEndRef}
                                 onToggleTodo={handleToggleTodo}
+                                userName={userName}
                             />
                         }
                     />

@@ -9,6 +9,8 @@ interface LoginPageProps {
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     const [loginEmail, setLoginEmail] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -21,6 +23,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         try {
             const response = await axios.post('http://localhost:3000/api/auth/login', {
                 email: loginEmail.toLowerCase().trim(),
+                firstName: firstName.trim(),
+                lastName: lastName.trim(),
             });
             const user = response.data.data;
             onLoginSuccess(user.id);
@@ -68,6 +72,33 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-8">
+                    <div className="flex gap-4 mb-4">
+                        <div className="flex-1">
+                            <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3 ml-2">
+                                First Name
+                            </label>
+                            <input
+                                type="text"
+                                value={firstName}
+                                onChange={(e) => setFirstName(e.target.value)}
+                                placeholder="Jane"
+                                className="w-full bg-slate-50/50 border-2 border-slate-100 rounded-2xl px-6 py-5 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-slate-800 font-medium placeholder:text-slate-400 group-hover:border-slate-200"
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3 ml-2">
+                                Last Name
+                            </label>
+                            <input
+                                type="text"
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
+                                placeholder="Doe"
+                                className="w-full bg-slate-50/50 border-2 border-slate-100 rounded-2xl px-6 py-5 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-slate-800 font-medium placeholder:text-slate-400 group-hover:border-slate-200"
+                            />
+                        </div>
+                    </div>
+
                     <div>
                         <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3 ml-2">
                             Email Address

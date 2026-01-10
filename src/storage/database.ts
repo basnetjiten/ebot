@@ -198,7 +198,10 @@ export class InMemoryDatabase implements IDatabase {
     }
 
     // Email account operations
-    async addEmailAccount(userId: string, accountData: Omit<EmailAccount, 'id'>): Promise<EmailAccount> {
+    async addEmailAccount(
+        userId: string,
+        accountData: Omit<EmailAccount, 'id'>,
+    ): Promise<EmailAccount> {
         const user = this.users.get(userId);
         if (!user) throw new Error('User not found');
 
@@ -472,7 +475,10 @@ export class MongoDatabase implements IDatabase {
     }
 
     // Email account operations
-    async addEmailAccount(userId: string, accountData: Omit<EmailAccount, 'id'>): Promise<EmailAccount> {
+    async addEmailAccount(
+        userId: string,
+        accountData: Omit<EmailAccount, 'id'>,
+    ): Promise<EmailAccount> {
         await this.ensureConnection();
 
         const user = await this.getUser(userId);
@@ -494,7 +500,7 @@ export class MongoDatabase implements IDatabase {
 
         const updatedUser = await this.getUser(userId);
         const accounts = updatedUser?.emailAccounts || [];
-        const existingIndex = accounts.findIndex(a => a.email === accountData.email);
+        const existingIndex = accounts.findIndex((a) => a.email === accountData.email);
 
         let account: EmailAccount;
         if (existingIndex > -1) {
@@ -508,8 +514,8 @@ export class MongoDatabase implements IDatabase {
         const updateDoc: any = {
             $set: {
                 emailAccounts: accounts,
-                isGmailConnected: accounts.some(a => a.provider === 'gmail' && a.isConnected)
-            }
+                isGmailConnected: accounts.some((a) => a.provider === 'gmail' && a.isConnected),
+            },
         };
 
         await this.users!.updateOne({ id: userId } as any, updateDoc);
@@ -560,10 +566,11 @@ export class MongoDatabase implements IDatabase {
             // Check if any gmail accounts remain to update the flag
             const user = await this.getUser(userId);
             if (user) {
-                const stillHasGmail = user.emailAccounts?.some(a => a.provider === 'gmail') || false;
+                const stillHasGmail =
+                    user.emailAccounts?.some((a) => a.provider === 'gmail') || false;
                 await this.users!.updateOne(
                     { id: userId } as any,
-                    { $set: { isGmailConnected: stillHasGmail } } as any
+                    { $set: { isGmailConnected: stillHasGmail } } as any,
                 );
             }
             return true;

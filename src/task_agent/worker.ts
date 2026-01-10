@@ -12,7 +12,9 @@ export class TaskWorker {
     start() {
         if (this.interval) return;
 
-        console.log(`[TaskWorker] Starting background worker (poll interval: ${this.pollIntervalMs}ms)...`);
+        console.log(
+            `[TaskWorker] Starting background worker (poll interval: ${this.pollIntervalMs}ms)...`,
+        );
         this.interval = setInterval(() => this.processTasks(), this.pollIntervalMs);
 
         // Run immediately on start
@@ -81,9 +83,11 @@ export class TaskWorker {
 
                     // Mark reminder as sent, but keep task pending
                     await taskStore.updateTask(task.id, {
-                        data: { ...task.data, reminderSent: true }
+                        data: { ...task.data, reminderSent: true },
                     } as any);
-                    console.log(`[TaskWorker] Sent reminder for task ${task.id}, marked reminderSent=true.`);
+                    console.log(
+                        `[TaskWorker] Sent reminder for task ${task.id}, marked reminderSent=true.`,
+                    );
                 }
             }
 
@@ -97,7 +101,7 @@ export class TaskWorker {
             // But to be safe and stick to scope: I will only modify the Reminder logic.
             // If it was picked up because of start time (and not reminder time), we might still want to complete it?
 
-            // Re-evaluating: The query picks up Events if startTime <= now. 
+            // Re-evaluating: The query picks up Events if startTime <= now.
             // If we don't complete them, they will be picked up forever in the loop.
             // So if it was picked up by startTime (and not reminder), we should probably complete it or flag it.
 
@@ -108,7 +112,6 @@ export class TaskWorker {
                 await taskStore.updateTaskStatus(task.id, 'completed');
                 console.log(`[TaskWorker] Event task ${task.id} marked as completed (started).`);
             }
-
         } catch (error) {
             console.error(`[TaskWorker] Failed to process task ${task.id}:`, error);
         }
@@ -117,11 +120,11 @@ export class TaskWorker {
     private async sendEmailReminder(task: Task) {
         try {
             const user = await database.getUser(task.userId);
-            const account = user?.emailAccounts?.find(a => a.isConnected);
+            const account = user?.emailAccounts?.find((a) => a.isConnected);
 
             if (!account) {
                 console.warn(
-                    `[TaskWorker] No connected email account found for user ${task.userId}, skipping email reminder.`
+                    `[TaskWorker] No connected email account found for user ${task.userId}, skipping email reminder.`,
                 );
                 return;
             }
@@ -129,9 +132,7 @@ export class TaskWorker {
             const subject = `Task Reminder: ${task.title}`;
 
             const scheduledTime =
-                (task.data as any)?.triggerTime ||
-                (task.data as any)?.startTime ||
-                'Now';
+                (task.data as any)?.triggerTime || (task.data as any)?.startTime || 'Now';
 
             const body = `Hello,
 
@@ -151,30 +152,17 @@ If you have already completed this task, please feel free to disregard this mess
 Best regards,
 Your Task Assistant`;
 
-            const success = await EmailService.sendEmail(
-                account,
-                account.email,
-                subject,
-                body
-            );
+            const success = await EmailService.sendEmail(account, account.email, subject, body);
 
             if (success) {
-                console.log(
-                    `[TaskWorker] Email reminder sent successfully for task ${task.id}.`
-                );
+                console.log(`[TaskWorker] Email reminder sent successfully for task ${task.id}.`);
             } else {
-                console.error(
-                    `[TaskWorker] Failed to send email reminder for task ${task.id}.`
-                );
+                console.error(`[TaskWorker] Failed to send email reminder for task ${task.id}.`);
             }
         } catch (error) {
-            console.error(
-                `[TaskWorker] Error sending email reminder for task ${task.id}:`,
-                error
-            );
+            console.error(`[TaskWorker] Error sending email reminder for task ${task.id}:`, error);
         }
     }
-
 }
 
 export const taskWorker = new TaskWorker();

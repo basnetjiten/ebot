@@ -39,7 +39,8 @@ export class TaskStore {
 
     async getTasks(userId: string): Promise<Task[]> {
         await this.ensureConnection();
-        const results = await this.tasks.find({ userId } as any)
+        const results = await this.tasks
+            .find({ userId } as any)
             .sort({ createdAt: -1 }) // Sort by newest first by default
             .toArray();
 
@@ -88,7 +89,9 @@ export class TaskStore {
             } as any)
             .toArray();
 
-        console.log(`[TaskStore] Found ${results.length} pending tasks with past trigger/start times`);
+        console.log(
+            `[TaskStore] Found ${results.length} pending tasks with past trigger/start times`,
+        );
 
         const mapped = results.map((doc) => ({
             ...doc,

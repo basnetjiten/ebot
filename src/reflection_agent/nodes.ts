@@ -93,9 +93,10 @@ export const summaryGenerator = async (state: AgentStateType): Promise<Partial<A
     }
 
     try {
-        const summary = await generateSummary(state.messages);
+        const { title, summary } = await generateSummary(state.messages);
 
         return {
+            title,
             summary,
             currentStep: 'feedback_generation',
         };
@@ -130,6 +131,7 @@ export const feedbackGenerator = async (
             state.currentReflection.content,
             state.currentReflection.type,
             state.messages,
+            state.userName,
         );
         // If the reflection suggests a need for external information, route to the web search node.
         if (
@@ -174,6 +176,7 @@ export const completionProcessor = (state: AgentStateType): Partial<AgentStateTy
         ? {
             ...state.currentReflection,
             keywords: state.keywordAnalysis,
+            title: state.title,
             summary: state.summary,
             feedback: state.feedback,
         }

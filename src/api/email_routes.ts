@@ -79,7 +79,9 @@ router.post('/setup', async (req, res) => {
     try {
         const { userId, account } = req.body;
         if (!userId || !account) {
-            return res.status(400).json({ success: false, error: 'Missing userId or account data' });
+            return res
+                .status(400)
+                .json({ success: false, error: 'Missing userId or account data' });
         }
 
         const newAccount = await database.addEmailAccount(userId, {
@@ -99,8 +101,10 @@ router.post('/chat', async (req, res) => {
         const { userId, message, history = [] } = req.body;
 
         const messages = [
-            ...history.map((m: any) => m.sender === 'user' ? new HumanMessage(m.content) : new HumanMessage(m.content)), // Simple mapping for now
-            new HumanMessage(message)
+            ...history.map((m: any) =>
+                m.sender === 'user' ? new HumanMessage(m.content) : new HumanMessage(m.content),
+            ), // Simple mapping for now
+            new HumanMessage(message),
         ];
 
         const result = await emailAgent.invoke({
@@ -116,7 +120,7 @@ router.post('/chat', async (req, res) => {
                 content: lastMessage.content,
                 operation: result.operation,
                 fetchedEmails: result.fetchedEmails,
-            }
+            },
         });
     } catch (error: any) {
         res.status(500).json({ success: false, error: error.message });

@@ -1,11 +1,16 @@
-
 import { SystemMessage } from '@langchain/core/messages';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { model } from '../utils/model';
 import { taskStore } from '../storage/task_store';
 import { ParsedTask, generateMissingFieldQuestions } from './types';
-import { TaskExtractionSchema, TodoDataSchema, EventDataSchema, HabitDataSchema, ReminderDataSchema } from './zod_schemas';
+import {
+    TaskExtractionSchema,
+    TodoDataSchema,
+    EventDataSchema,
+    HabitDataSchema,
+    ReminderDataSchema,
+} from './zod_schemas';
 import { buildSystemPrompt } from './prompts';
 import { Task } from '../types/task';
 
@@ -22,20 +27,30 @@ export async function extractTaskDetails(
         const systemPrompt = buildSystemPrompt(currentTimeStr);
 
         let userContext = `
-    Current partial task state:
-    ${JSON.stringify(currentPartialTask, null, 2)}`;
+═══════════════════════════════════════════════════════════════════
+CONTEXT: Current Partial Task State
+═══════════════════════════════════════════════════════════════════
+${JSON.stringify(currentPartialTask, null, 2)}`;
 
         if (lastCreatedTask) {
             userContext += `
-    
-    Recently Created Task (for context):
-    ${JSON.stringify({ title: lastCreatedTask.title, type: lastCreatedTask.type, id: lastCreatedTask.id }, null, 2)}
-    (If user says "remind me", they might mean THIS task. If so, set isUpdate: true)`;
+
+═══════════════════════════════════════════════════════════════════
+CONTEXT: Recently Created Task
+═══════════════════════════════════════════════════════════════════
+${JSON.stringify({
+                title: lastCreatedTask.title,
+                type: lastCreatedTask.type,
+                id: lastCreatedTask.id
+            }, null, 2)}
+
+NOTE: If the user's current message refers to THIS task (e.g., "remind me about that", "change the time", "add a reminder"), set isUpdate: true and include only the fields being modified in the data object.
+═══════════════════════════════════════════════════════════════════`;
         }
 
-        userContext += `\n\n    Extract or update task details from the conversation.`;
+        userContext += `\n\nExtract or update task details from the conversation based on the guidelines above.`;
 
-        // Use structured output!
+        // Use structured output
         const structuredModel = model.withStructuredOutput(TaskExtractionSchema);
 
         const response = await structuredModel.invoke([
@@ -43,7 +58,11 @@ export async function extractTaskDetails(
             ...messages,
         ]);
 
-        // Structured output response is already the object!
+        // Validate that conversationalResponse exists
+        if (!response.conversationalResponse) {
+            throw new Error('conversationalResponse is required but was not provided');
+        }
+
         return response as ParsedTask;
 
     } catch (e) {
@@ -57,8 +76,8 @@ export function generateClarificationContent(
     validationErrors?: string[],
     acknowledgement?: string,
 ): string {
-    // cast missingFields mainly because Zod inference might make it optional/undefined in ParsedTask 
-    // but here we expect an array if we are calling this function. 
+    // cast missingFields mainly because Zod inference might make it optional/undefined in ParsedTask
+    // but here we expect an array if we are calling this function.
     // Actually types say it can be undefined.
     const safeMissingFields = missingFields || [];
     const missingQuestions = generateMissingFieldQuestions(safeMissingFields);
@@ -133,27 +152,27 @@ export const createTaskTool = tool(
 
             return JSON.stringify(task);
         } catch (error) {
-            console.error("Error creating task:", error);
-            return "Error creating task";
+            console.error('Error creating task:', error);
+            return 'Error creating task';
         }
     },
     {
-        name: "create_task",
-        description: "Creates a new task (todo, event, habit, reminder) in the database.",
+        name: 'create_task',
+        description: 'Creates a new task (todo, event, habit, reminder) in the database.',
         schema: z.object({
-            userId: z.string().describe("The user ID"),
-            title: z.string().describe("The title of the task"),
-            summary: z.string().optional().describe("A summary of the task"),
-            type: z.enum(['todo', 'event', 'habit', 'reminder']).describe("The type of task"),
-            data: z.record(z.string(), z.any()).optional().describe("Task specific data"),
-            remindViaEmail: z.boolean().optional().describe("Whether to send an email reminder"),
-        })
-    }
+            userId: z.string().describe('The user ID'),
+            title: z.string().describe('The title of the task'),
+            summary: z.string().optional().describe('A summary of the task'),
+            type: z.enum(['todo', 'event', 'habit', 'reminder']).describe('The type of task'),
+            data: z.record(z.string(), z.any()).optional().describe('Task specific data'),
+            remindViaEmail: z.boolean().optional().describe('Whether to send an email reminder'),
+        }),
+    },
 );
 
 export const TaskTools = {
     extractTaskDetails,
     generateClarificationContent,
     generateConfirmationPrompt,
-    createTaskTool
+    createTaskTool,
 };

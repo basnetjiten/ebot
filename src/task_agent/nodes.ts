@@ -1,7 +1,12 @@
 import { AIMessage } from '@langchain/core/messages';
 import { END } from '@langchain/langgraph';
 import { TaskStateAnnotation } from './state';
-import { extractTaskDetails, generateClarificationContent, generateConfirmationPrompt, createTaskTool } from './tools';
+import {
+    extractTaskDetails,
+    generateClarificationContent,
+    generateConfirmationPrompt,
+    createTaskTool,
+} from './tools';
 import { taskStore } from '../storage/task_store';
 import { Task } from '../types/task';
 
@@ -13,12 +18,22 @@ export const parseRequestNode = async (state: typeof TaskStateAnnotation.State) 
         // If we are waiting for an email reminder choice, handle it first
         if (state.isWaitingForEmailChoice && state.lastCreatedTaskId) {
             const lowerMsg = state.messages[state.messages.length - 1].content.toLowerCase();
-            const isYes = lowerMsg.includes('yes') || lowerMsg.includes('sure') || lowerMsg.includes('ok') || lowerMsg.includes('perfect');
+            const isYes =
+                lowerMsg.includes('yes') ||
+                lowerMsg.includes('sure') ||
+                lowerMsg.includes('ok') ||
+                lowerMsg.includes('perfect');
 
             if (isYes) {
-                await taskStore.updateTask(state.lastCreatedTaskId, { remindViaEmail: true } as any);
+                await taskStore.updateTask(state.lastCreatedTaskId, {
+                    remindViaEmail: true,
+                } as any);
                 return {
-                    messages: [new AIMessage("Great! I've turned on email reminders for that task. What else can I help you with?")],
+                    messages: [
+                        new AIMessage(
+                            "Great! I've turned on email reminders for that task. What else can I help you with?",
+                        ),
+                    ],
                     isWaitingForEmailChoice: false,
                     lastCreatedTaskId: undefined,
                     partialTask: {},
@@ -26,7 +41,11 @@ export const parseRequestNode = async (state: typeof TaskStateAnnotation.State) 
                 };
             } else {
                 return {
-                    messages: [new AIMessage("No problem! Is there anything else you'd like to organize today?")],
+                    messages: [
+                        new AIMessage(
+                            "No problem! Is there anything else you'd like to organize today?",
+                        ),
+                    ],
                     isWaitingForEmailChoice: false,
                     lastCreatedTaskId: undefined,
                     partialTask: {},
@@ -39,7 +58,7 @@ export const parseRequestNode = async (state: typeof TaskStateAnnotation.State) 
         let lastTask: Task | undefined;
         if (state.lastCreatedTaskId) {
             const tasks = await taskStore.getTasks(state.userId);
-            lastTask = tasks.find(t => t.id === state.lastCreatedTaskId);
+            lastTask = tasks.find((t) => t.id === state.lastCreatedTaskId);
         }
 
         const extracted = await extractTaskDetails(state.messages, state.partialTask, lastTask);
@@ -57,7 +76,7 @@ export const parseRequestNode = async (state: typeof TaskStateAnnotation.State) 
                 // Also update top-level fields if present
                 ...(extracted.title ? { title: extracted.title } : {}),
                 ...(extracted.type ? { type: extracted.type } : {}),
-                remindViaEmail: extracted.data?.remindViaEmail ?? lastTask.remindViaEmail // promoted field
+                remindViaEmail: extracted.data?.remindViaEmail ?? lastTask.remindViaEmail, // promoted field
             } as any);
 
             const updateMsg = "I've updated the task for you!";
@@ -164,7 +183,15 @@ export const saveTaskNode = async (state: typeof TaskStateAnnotation.State) => {
             summary: state.partialTask.summary || '',
             type: state.partialTask.type as any,
             data: state.partialTask.data || {},
-            remindViaEmail: state.partialTask.remindViaEmail ?? state.partialTask.data?.remindViaEmail,
+            remindViaEmail:
+                typeof (
+                    state.partialTask.remindViaEmail ?? state.partialTask.data?.remindViaEmail
+                ) === 'object'
+                    ? (
+                          state.partialTask.remindViaEmail ??
+                          (state.partialTask.data?.remindViaEmail as any)
+                      )?.value
+                    : (state.partialTask.remindViaEmail ?? state.partialTask.data?.remindViaEmail),
         });
 
         const newTask = JSON.parse(toolResult);
@@ -173,7 +200,7 @@ export const saveTaskNode = async (state: typeof TaskStateAnnotation.State) => {
 
         let message = `Task "${newTask.title}" created successfully!`;
         if (needsEmailPrompt) {
-            message += "\n\nWould you like me to also remind you via email?";
+            message += '\n\nWould you like me to also remind you via email?';
         }
 
         return {

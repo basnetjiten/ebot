@@ -85,6 +85,7 @@ export const submitReflection = async (req: Request, res: Response) => {
         // Run the reflection analysis agent
         const result = await compiledAgent.invoke({
             userId,
+            userName: user?.firstName || '',
             currentReflection: reflectionForAgent,
             currentStep: 'initial',
             analysisComplete: false,
@@ -96,6 +97,7 @@ export const submitReflection = async (req: Request, res: Response) => {
             summary: '',
             feedback: '',
             error: null,
+            title: '',
         });
 
         // Update reflection with analysis results
@@ -259,7 +261,7 @@ export const getTodosByReflection = async (req: Request, res: Response) => {
 // Login/Register user by email
 export const loginUser = async (req: Request, res: Response) => {
     try {
-        const { email } = req.body;
+        const { email, firstName, lastName } = req.body;
 
         if (!email) {
             return res.status(400).json(createResponse(null, 'Email is required'));
@@ -272,12 +274,18 @@ export const loginUser = async (req: Request, res: Response) => {
             console.log(`New user login with email: ${email}, creating record...`);
             user = await database.createUser({
                 id: email,
+                firstName: firstName || '',
+                lastName: lastName || '',
                 preferences: {
                     feedbackStyle: 'encouraging',
                     moodTrackingEnabled: true,
                     summaryFrequency: 'daily',
                 },
             } as any);
+        } else if (firstName || lastName) {
+            // Update name if provided and missing
+            if (!user.firstName && firstName) await database.updateUser(user.id, { firstName });
+            if (!user.lastName && lastName) await database.updateUser(user.id, { lastName });
         }
 
         res.json(createResponse(user));
@@ -295,11 +303,12 @@ export const getUserSummary = async (req: Request, res: Response) => {
             return res.status(400).json(createResponse(null, 'User ID is required'));
         }
 
-        const [latestReflection, history, allTodos, keywords] = await Promise.all([
+        const [latestReflection, history, allTodos, keywords, user] = await Promise.all([
             database.getLatestReflection(userId),
             database.getUserReflections(userId, 5),
             database.getUserTodos(userId),
             database.getUserKeywords(userId),
+            database.getUser(userId),
         ]);
 
         // Fetch todos for each history item to show intentions in the dashboard
@@ -327,6 +336,7 @@ export const getUserSummary = async (req: Request, res: Response) => {
 
         res.json(
             createResponse({
+                user,
                 latestReflection,
                 history: historyWithTodos,
                 allTodos,

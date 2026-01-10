@@ -17,6 +17,10 @@ export const config = {
         dbName: process.env.MONGODB_DB_NAME!,
         useMemoryDb: process.env.USE_MEMORY_DB === 'true',
     },
+    ollama: {
+        baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
+        model: process.env.OLLAMA_MODEL || 'gemma3:4b',
+    },
     // Add other config groups here
 };
 

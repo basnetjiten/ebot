@@ -24,27 +24,27 @@ async function runTest() {
                 summary: 'Refactor the task agent',
                 data: {
                     priority: 'high',
-                    dueDate: '2026-01-10T00:00:00.000Z'
+                    dueDate: '2026-01-10T00:00:00.000Z',
                 },
                 conversationalResponse: 'I will help you refactor the code!',
                 missingFields: [],
                 validationErrors: [],
-                isUpdate: false
+                isUpdate: false,
             };
-        }
+        },
     };
 
     // Override the model.withStructuredOutput to return our mock
     // This is tricky because `model` is imported. We might need to mock the import or just rely on real call if enabled.
-    // Given the environment, let's try a real call first? 
-    // If the user has a valid key, it should work. 
-    // But the previous conversation had key issues. 
+    // Given the environment, let's try a real call first?
+    // If the user has a valid key, it should work.
+    // But the previous conversation had key issues.
 
     // Actually, let's test the TOOL signature and types primarily.
 
     try {
         const partialTask = {};
-        const messages = [new HumanMessage("Remind me to refactor the code tomorrow")];
+        const messages = [new HumanMessage('Remind me to refactor the code tomorrow')];
 
         // We can't easily mock the internal `model` usage inside TaskTools without dependency injection or jest.
         // So we will just try to run it. If it fails due to API key, we catch it.
@@ -58,7 +58,6 @@ async function runTest() {
         */
 
         console.log('Types check passed (static verification).');
-
     } catch (e) {
         console.error('Runtime error:', e);
     }

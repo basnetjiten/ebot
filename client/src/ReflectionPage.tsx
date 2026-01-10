@@ -19,6 +19,7 @@ interface ReflectionPageProps {
     todoStatus: { uncompleted: number; completed: number } | null;
     chatEndRef: React.RefObject<HTMLDivElement | null>;
     onToggleTodo?: (id: string, currentStatus: boolean) => void;
+    userName?: string;
 }
 
 const Typewriter: React.FC<{ text: string; speed?: number }> = ({ text, speed = 15 }) => {
@@ -69,6 +70,7 @@ const ReflectionPage: React.FC<ReflectionPageProps> = ({
     todoStatus,
     chatEndRef,
     onToggleTodo: _onToggleTodo,
+    userName,
 }) => {
     const location = useLocation();
     return (
@@ -395,7 +397,7 @@ const ReflectionPage: React.FC<ReflectionPageProps> = ({
                                 onChange={(e) => setInput(e.target.value)}
                                 placeholder={
                                     messages.length === 0
-                                        ? `Good ${reflectionType === 'morning' ? 'morning' : 'evening'}! What's on your mind?`
+                                        ? `Good ${reflectionType === 'morning' ? 'morning' : 'evening'} ${userName ? userName : ''}! What's on your mind?`
                                         : 'Continue your reflection...'
                                 }
                                 disabled={isSubmitting}

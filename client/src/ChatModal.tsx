@@ -58,7 +58,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, reflection, onTo
                         initial={{ opacity: 0, scale: 0.95, y: 30 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 30 }}
-                        className="relative w-full max-w-5xl bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-2xl overflow-hidden h-[65vh] flex flex-col border border-white/50"
+                        className="relative w-full max-w-5xl bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-2xl overflow-hidden h-[75vh] flex flex-col border border-white/50"
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
@@ -186,7 +186,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, reflection, onTo
                                                 <section>
                                                     <h4 className="text-xs font-black uppercase tracking-widest text-purple-500 mb-6 flex items-center gap-2">
                                                         <span className="w-8 h-[2px] bg-purple-500 rounded-full" />{' '}
-                                                        AI Summary
+                                                        {reflection.title || 'AI Summary'}
                                                     </h4>
                                                     <div className="prose prose-lg max-w-none text-slate-600 leading-relaxed bg-slate-50/50 p-8 rounded-3xl border border-slate-100/50">
                                                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
