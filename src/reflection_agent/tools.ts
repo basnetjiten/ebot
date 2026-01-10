@@ -60,12 +60,22 @@ export async function generateSummary(messages: BaseMessage[]): Promise<{ title:
     try {
         const response = await model.invoke(prompt);
         const cleaned = cleanJSONResponse(response.content as string);
-        const parsed = JSON.parse(cleaned);
 
-        return {
-            title: parsed.title || 'Reflection',
-            summary: parsed.summary || 'No summary available'
-        };
+        try {
+            const parsed = JSON.parse(cleaned);
+            return {
+                title: parsed.title || 'Reflection',
+                summary: parsed.summary || 'No summary available'
+            };
+        } catch (parseError) {
+            console.warn('Failed to parse summary JSON, falling back to raw text:', parseError);
+            // Fallback: Use the first sentence or first few words as title, and the rest as summary
+            // Or just use a generic title and the full text as summary
+            return {
+                title: 'Reflection Summary',
+                summary: (response.content as string).replace(/```json|```/g, '').trim()
+            };
+        }
     } catch (error) {
         console.error('Error generating summary:', error);
         return { title: 'Reflection', summary: 'Summary unavailable' };

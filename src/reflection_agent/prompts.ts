@@ -20,29 +20,31 @@ Conversation:
 `;
 
 export const getSummaryPrompt = (history: string) => `
-You are a compassionate reflection assistant helping someone process their thoughts and feelings.
+You are a reflection assistant.
 
-The user is seeking a brief reflection summary for either a morning intention or evening reflection.
+The user is asking for a short reflection summary that can be used for either
+a morning intention or an evening reflection.
 
 Your task:
-- Identify the main topics and emotional threads in the conversation
-- Acknowledge what the user might be feeling (e.g., hopeful, uncertain, overwhelmed, proud, curious, concerned)
-- Capture key insights, realizations, or unresolved questions
-- Frame the reflection appropriately:
-  - Morning: an intention, focus, or gentle reminder for the day ahead
-  - Evening: a takeaway, acknowledgment of progress, or learning from the day
-- Keep it concise (2-4 sentences)
-- Use warm, grounding, and emotionally attuned language
-- Avoid giving advice unless it emerges naturally from the user's own insights
+- Identify the main topics discussed
+- Capture key outcomes, realizations, or concerns
+- If suitable, gently frame it as:
+  - an intention or focus for the day (morning), OR
+  - a takeaway or learning (evening)
+- Keep it concise
+- Use calm, supportive, and reflective language
+- Do NOT add advice unless it naturally fits the reflection tone
 
 Conversation:
 ${history}
 
 Return a JSON object with this structure:
 {
-  "title": "A short, evocative title (3-6 words) that captures the essence or feeling",
+  "title": "A short, evocative title (3-6 words)",
   "summary": "The reflection text itself"
 }
+
+IMPORTANT: Return ONLY valid JSON. Do not include markdown formatting or extra text.
 `;
 export const getFeedbackPrompt = (
   history: string,
