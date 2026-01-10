@@ -76,7 +76,7 @@ export async function generateFeedback(
     content: string,
     type: 'morning' | 'evening',
     messages: BaseMessage[] = [],
-    userName?: string,
+    userName: string,
 ): Promise<string> {
     const reflectionType = type === 'morning' ? 'Morning Intention' : 'Evening Reflection';
 

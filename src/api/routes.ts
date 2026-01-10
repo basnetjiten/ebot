@@ -30,6 +30,7 @@ export const submitReflection = async (req: Request, res: Response) => {
 
         // Ensure user exists
         let user = await database.getUser(userId);
+        console.log(`[DEBUG] submitReflection - User retrieved: ${userId}, firstName: ${user?.firstName}`);
         if (!user) {
             console.log(`User ${userId} not found, creating new user...`);
             user = await database.createUser({
@@ -81,6 +82,8 @@ export const submitReflection = async (req: Request, res: Response) => {
             ...reflection,
             content: content,
         };
+
+        console.log(`[DEBUG] Invoking agent with userName: '${user?.firstName || ''}'`);
 
         // Run the reflection analysis agent
         const result = await compiledAgent.invoke({
